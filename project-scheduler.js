@@ -124,7 +124,9 @@
     function buildTemplateLookup(projectData) {
         const templateMap = {
             tasks: new Map(),
-            operations: new Map()
+            operations: new Map(),
+            taskExecutors: new Map(),
+            operationExecutors: new Map()
         };
 
         projectData.forEach(item => {
@@ -135,6 +137,7 @@
                 const operationName = item['Операция'];
                 const taskNormative = parseDuration(item['Норматив задачи']);
                 const operationNormative = parseDuration(item['Норматив операции']);
+                const executorsNeeded = item['Исполнителей'];
 
                 if (taskName && taskNormative > 0) {
                     if (!templateMap.tasks.has(taskName)) {
@@ -147,10 +150,46 @@
                         templateMap.operations.set(operationName, operationNormative);
                     }
                 }
+
+                // Store executors count for both tasks and operations
+                if (taskName && executorsNeeded && executorsNeeded !== '') {
+                    if (!templateMap.taskExecutors.has(taskName)) {
+                        templateMap.taskExecutors.set(taskName, executorsNeeded);
+                    }
+                }
+
+                if (operationName && executorsNeeded && executorsNeeded !== '') {
+                    if (!templateMap.operationExecutors.has(operationName)) {
+                        templateMap.operationExecutors.set(operationName, executorsNeeded);
+                    }
+                }
             }
         });
 
         return templateMap;
+    }
+
+    /**
+     * Get executors count for an item (task or operation)
+     * Priority: 1) Template value, 2) Default (1)
+     */
+    function getExecutorsCount(item, templateLookup, isOperation) {
+        if (isOperation) {
+            const operationName = item['Операция'];
+            if (operationName && templateLookup.operationExecutors.has(operationName)) {
+                const count = templateLookup.operationExecutors.get(operationName);
+                return parseInt(count, 10) || 1;
+            }
+        } else {
+            const taskName = item['Задача проекта'];
+            if (taskName && templateLookup.taskExecutors.has(taskName)) {
+                const count = templateLookup.taskExecutors.get(taskName);
+                return parseInt(count, 10) || 1;
+            }
+        }
+
+        // Default: 1 executor
+        return 1;
     }
 
     /**
@@ -623,7 +662,7 @@
                 quantity: parseQuantity(item['Кол-во']),
                 previousDependency: isOperation ? item['Предыдущая Операция'] : item['Предыдущая Задача'],
                 parameters: isOperation ? item['Параметры операции'] : item['Параметры задачи'],
-                executorsNeeded: parseInt(item['Исполнителей'] || '1', 10),
+                executorsNeeded: getExecutorsCount(item, templateLookup, isOperation),
                 executors: []
             });
         });
