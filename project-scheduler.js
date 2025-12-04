@@ -25,8 +25,8 @@
         executorsReportId: 2777,
 
         // Field codes for saving data
-        taskDurationCode: 't3094',
-        operationDurationCode: 't704',
+        taskDurationCode: 't3758',
+        operationDurationCode: 't3757',
         taskStartCode: 't798',
         operationStartCode: 't2665',
         taskExecutorCode: 't690',
