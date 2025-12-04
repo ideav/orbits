@@ -16,6 +16,7 @@
     // Global variables (expected to be available on the page)
     // db - database name
     // xsrf - XSRF token for POST requests
+    // my - authorization token for API requests
 
     const CONFIG = {
         // API endpoints
@@ -52,7 +53,14 @@
     async function fetchJson(url) {
         try {
             console.log(`  Fetching from URL: ${url}`);
-            const response = await fetch(url);
+            const myToken = window.my || '';
+            const headers = {};
+            if (myToken) {
+                headers['my'] = myToken;
+            }
+            const response = await fetch(url, {
+                headers: headers
+            });
             if (!response.ok) {
                 console.error(`  HTTP error! status: ${response.status}`);
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -72,17 +80,23 @@
     async function saveData(itemId, fieldCode, value) {
         const url = buildApiUrl(`/_m_set/${itemId}?JSON=1`);
         const xsrfToken = window.xsrf || '';
+        const myToken = window.my || '';
 
         const formData = new URLSearchParams();
         formData.append(fieldCode, value);
         formData.append('_xsrf', xsrfToken);
 
+        const headers = {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        };
+        if (myToken) {
+            headers['my'] = myToken;
+        }
+
         try {
             const response = await fetch(url, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
+                headers: headers,
                 body: formData.toString()
             });
 
