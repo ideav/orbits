@@ -639,6 +639,54 @@
     }
 
     /**
+     * Parse coordinates string in format: "latitude,longitude" or "lat, lon"
+     * Example: "55.7558, 37.6173" or "55.7558,37.6173"
+     * Returns {lat: number, lon: number} or null if invalid
+     */
+    function parseCoordinates(coordStr) {
+        if (!coordStr || coordStr.trim() === '') {
+            return null;
+        }
+
+        const parts = coordStr.split(',');
+        if (parts.length !== 2) {
+            return null;
+        }
+
+        const lat = parseFloat(parts[0].trim());
+        const lon = parseFloat(parts[1].trim());
+
+        if (isNaN(lat) || isNaN(lon)) {
+            return null;
+        }
+
+        return { lat, lon };
+    }
+
+    /**
+     * Calculate distance between two points using Haversine formula
+     * Returns distance in kilometers
+     */
+    function calculateDistance(coord1, coord2) {
+        if (!coord1 || !coord2) {
+            return Infinity; // If coordinates are missing, treat as infinitely far
+        }
+
+        const R = 6371; // Earth's radius in kilometers
+        const dLat = (coord2.lat - coord1.lat) * Math.PI / 180;
+        const dLon = (coord2.lon - coord1.lon) * Math.PI / 180;
+
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                  Math.cos(coord1.lat * Math.PI / 180) * Math.cos(coord2.lat * Math.PI / 180) *
+                  Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const distance = R * c;
+
+        return distance;
+    }
+
+    /**
      * Check if executor is available during the given time slot
      */
     function isExecutorAvailable(executor, startTime, endTime, executorAssignments) {
@@ -738,12 +786,13 @@
     }
 
     /**
-     * Schedule tasks and operations
+     * Schedule tasks and operations with support for parallel execution on different grips
      */
     function scheduleTasks(projectData, templateLookup, workHours, projectStartDate) {
         console.log('  Scheduling work items...');
         const scheduled = [];
         const completionTimes = new Map(); // Track when each task/operation completes
+        const gripCompletionTimes = new Map(); // Track completion time per grip: Map<grip, Map<taskName, endTime>>
 
         // Filter only "В работе" (In progress) items
         const workItems = projectData.filter(item => item['Статус проекта'] === 'В работе');
@@ -759,6 +808,8 @@
             const itemId = isOperation ? item['ОперацияID'] : item['Задача проектаID'];
             const itemName = isOperation ? item['Операция'] : item['Задача проекта'];
             const itemType = isOperation ? 'Operation' : 'Task';
+            const grip = item['Захватка'] || '';
+            const coordinates = item['Координаты'] || '';
 
             // Skip if no name
             if (!itemName || itemName.trim() === '') {
@@ -768,6 +819,9 @@
 
             itemNumber++;
             console.log(`  --- Scheduling item ${itemNumber}/${workItems.length}: ${itemType} "${itemName}" (${itemId}) ---`);
+            if (grip) {
+                console.log(`      Grip: "${grip}"${coordinates ? ` (${coordinates})` : ''}`);
+            }
 
             // Calculate duration
             const durationInfo = calculateDuration(item, templateLookup, isOperation);
@@ -778,31 +832,62 @@
             if (isOperation) {
                 const prevOperation = item['Предыдущая Операция'];
                 if (prevOperation && prevOperation !== '') {
-                    dependencyTime = completionTimes.get(`op:${prevOperation}`);
-                    if (dependencyTime) {
-                        console.log(`      Dependency: waiting for operation "${prevOperation}" (completes at ${formatDateTime(dependencyTime)})`);
-                    } else {
-                        console.log(`      Dependency: operation "${prevOperation}" not found in completion times`);
+                    // Check grip-specific completion time first if grip is specified
+                    if (grip && gripCompletionTimes.has(grip)) {
+                        const gripTimes = gripCompletionTimes.get(grip);
+                        dependencyTime = gripTimes.get(`op:${prevOperation}`);
+                        if (dependencyTime) {
+                            console.log(`      Dependency (grip-specific): waiting for operation "${prevOperation}" on grip "${grip}" (completes at ${formatDateTime(dependencyTime)})`);
+                        }
+                    }
+                    // Fallback to global completion time
+                    if (!dependencyTime) {
+                        dependencyTime = completionTimes.get(`op:${prevOperation}`);
+                        if (dependencyTime) {
+                            console.log(`      Dependency (global): waiting for operation "${prevOperation}" (completes at ${formatDateTime(dependencyTime)})`);
+                        } else {
+                            console.log(`      Dependency: operation "${prevOperation}" not found in completion times`);
+                        }
                     }
                 }
             } else {
                 const prevTask = item['Предыдущая Задача'];
                 if (prevTask && prevTask !== '') {
-                    dependencyTime = completionTimes.get(`task:${prevTask}`);
-                    if (dependencyTime) {
-                        console.log(`      Dependency: waiting for task "${prevTask}" (completes at ${formatDateTime(dependencyTime)})`);
-                    } else {
-                        console.log(`      Dependency: task "${prevTask}" not found in completion times`);
+                    // Check grip-specific completion time first if grip is specified
+                    if (grip && gripCompletionTimes.has(grip)) {
+                        const gripTimes = gripCompletionTimes.get(grip);
+                        dependencyTime = gripTimes.get(`task:${prevTask}`);
+                        if (dependencyTime) {
+                            console.log(`      Dependency (grip-specific): waiting for task "${prevTask}" on grip "${grip}" (completes at ${formatDateTime(dependencyTime)})`);
+                        }
+                    }
+                    // Fallback to global completion time
+                    if (!dependencyTime) {
+                        dependencyTime = completionTimes.get(`task:${prevTask}`);
+                        if (dependencyTime) {
+                            console.log(`      Dependency (global): waiting for task "${prevTask}" (completes at ${formatDateTime(dependencyTime)})`);
+                        } else {
+                            console.log(`      Dependency: task "${prevTask}" not found in completion times`);
+                        }
                     }
                 }
             }
 
             // Determine start time
-            let startTime = new Date(currentTime);
-            if (dependencyTime && dependencyTime > currentTime) {
-                console.log(`      Start time moved from ${formatDateTime(currentTime)} to ${formatDateTime(dependencyTime)} due to dependency`);
+            // For items with a grip, use grip-specific timeline if no dependencies
+            // For items without grip or with dependencies, use dependency time or current time
+            let startTime;
+            if (dependencyTime) {
                 startTime = new Date(dependencyTime);
+                console.log(`      Starting after dependency: ${formatDateTime(startTime)}`);
+            } else if (grip) {
+                // For grip-based items without dependencies, they can start at project start time (parallel execution)
+                startTime = new Date(projectStartDate);
+                startTime.setHours(workHours.dayStart, 0, 0, 0);
+                console.log(`      Starting at project start (grip "${grip}" allows parallel execution): ${formatDateTime(startTime)}`);
             } else {
+                // For items without grip, use sequential scheduling
+                startTime = new Date(currentTime);
                 console.log(`      Starting at current time: ${formatDateTime(startTime)}`);
             }
 
@@ -824,9 +909,21 @@
             const key = isOperation ? `op:${itemName}` : `task:${itemName}`;
             completionTimes.set(key, endTime);
 
-            // Update current time for next item (sequential by default)
-            currentTime = new Date(endTime);
-            console.log(`      Next item will start after: ${formatDateTime(currentTime)}`);
+            // Store grip-specific completion time if grip is specified
+            if (grip) {
+                if (!gripCompletionTimes.has(grip)) {
+                    gripCompletionTimes.set(grip, new Map());
+                }
+                const gripTimes = gripCompletionTimes.get(grip);
+                gripTimes.set(key, endTime);
+                console.log(`      Stored grip-specific completion time for "${grip}"`);
+            }
+
+            // Update current time for next item (only for non-grip items or sequential logic)
+            if (!grip) {
+                currentTime = new Date(endTime);
+                console.log(`      Next item will start after: ${formatDateTime(currentTime)}`);
+            }
 
             // Determine parameters (with template lookup and fallback)
             const itemParameters = getItemParameters(item, templateLookup, isOperation);
@@ -846,7 +943,9 @@
                 previousDependency: isOperation ? item['Предыдущая Операция'] : item['Предыдущая Задача'],
                 parameters: itemParameters,
                 executorsNeeded: getExecutorsCount(item, templateLookup, isOperation),
-                executors: []
+                executors: [],
+                grip: grip,
+                coordinates: coordinates
             });
         });
 
@@ -855,6 +954,7 @@
 
     /**
      * Assign executors to scheduled tasks and operations
+     * Prioritizes executors based on proximity to grip coordinates
      */
     function assignExecutors(scheduled, executors) {
         console.log('  Assigning executors to scheduled items...');
@@ -879,16 +979,19 @@
             }
             console.log(`      Time slot: ${formatDateTime(item.startTime)} - ${formatDateTime(item.endTime)}`);
 
-            // Find suitable executors
+            // Parse grip coordinates if available
+            const gripCoords = parseCoordinates(item.coordinates);
+            if (gripCoords) {
+                console.log(`      Grip coordinates: ${gripCoords.lat}, ${gripCoords.lon}`);
+            }
+
+            // Build list of eligible executors with distances
+            const eligibleExecutors = [];
             let checkedExecutors = 0;
             let failedParameterCheck = 0;
             let failedAvailabilityCheck = 0;
 
             for (const executor of executors) {
-                if (assignedExecutors.length >= executorsNeeded) {
-                    break;
-                }
-
                 checkedExecutors++;
                 const executorId = executor['ПользовательID'];
                 const executorName = executor['Исполнитель'];
@@ -907,14 +1010,40 @@
                     continue;
                 }
 
-                // Assign executor
+                // Calculate distance to grip if coordinates are available
+                let distance = Infinity;
+                const executorCoords = parseCoordinates(executor['Координаты']);
+                if (gripCoords && executorCoords) {
+                    distance = calculateDistance(executorCoords, gripCoords);
+                    console.log(`      ✓ Executor "${executorName}" (${executorId}) - distance: ${distance.toFixed(2)} km`);
+                } else {
+                    console.log(`      ✓ Executor "${executorName}" (${executorId}) - no distance calculation (missing coordinates)`);
+                }
+
+                eligibleExecutors.push({
+                    executor: executor,
+                    distance: distance
+                });
+            }
+
+            // Sort eligible executors by distance (nearest first)
+            eligibleExecutors.sort((a, b) => a.distance - b.distance);
+
+            // Assign the nearest executors
+            for (let i = 0; i < Math.min(executorsNeeded, eligibleExecutors.length); i++) {
+                const {executor, distance} = eligibleExecutors[i];
+                const executorId = executor['ПользовательID'];
+                const executorName = executor['Исполнитель'];
+
                 assignedExecutors.push({
                     id: executorId,
                     name: executorName,
-                    qualificationLevel: executor['Квалификация -> Уровень']
+                    qualificationLevel: executor['Квалификация -> Уровень'],
+                    distance: distance !== Infinity ? distance : null
                 });
 
-                console.log(`      ✓ Assigned executor "${executorName}" (${executorId}) with qualification level ${executor['Квалификация -> Уровень']}`);
+                const distanceStr = distance !== Infinity ? ` (distance: ${distance.toFixed(2)} km)` : '';
+                console.log(`      ✓ Assigned executor "${executorName}" (${executorId}) with qualification level ${executor['Квалификация -> Уровень']}${distanceStr}`);
 
                 // Record assignment
                 if (!executorAssignments.has(executorId)) {
@@ -924,7 +1053,8 @@
                     startTime: item.startTime,
                     endTime: item.endTime,
                     taskName: item.taskName,
-                    operationName: item.isOperation ? item.name : null
+                    operationName: item.isOperation ? item.name : null,
+                    grip: item.grip
                 });
             }
 
@@ -1072,6 +1202,7 @@
                         <th>№</th>
                         <th>Задача</th>
                         <th>Операция</th>
+                        <th>Захватка</th>
                         <th>Длительность (мин)</th>
                         <th>Источник норматива</th>
                         <th>Количество</th>
@@ -1094,9 +1225,13 @@
             // Format executors
             let executorsHtml = '';
             if (item.executors.length > 0) {
-                executorsHtml = item.executors.map(e =>
-                    `${e.name} (ур.${e.qualificationLevel})`
-                ).join('<br>');
+                executorsHtml = item.executors.map(e => {
+                    let str = `${e.name} (ур.${e.qualificationLevel})`;
+                    if (e.distance !== null && e.distance !== undefined) {
+                        str += ` [${e.distance.toFixed(1)} км]`;
+                    }
+                    return str;
+                }).join('<br>');
             } else if (item.executorsNeeded > 0) {
                 executorsHtml = '<span style="color: red;">Не назначен</span>';
             } else {
@@ -1113,6 +1248,7 @@
                     <td>${index + 1}</td>
                     <td>${item.taskName || ''}</td>
                     <td>${item.isOperation ? item.name : ''}</td>
+                    <td>${item.grip || '-'}</td>
                     <td>${item.duration}</td>
                     <td>${sourceLabel}</td>
                     <td>${item.quantity}</td>
@@ -1127,7 +1263,7 @@
         html += `
                 </tbody>
             </table>
-            <p style="margin-top: 20px;"><em>График рассчитан с учетом рабочего времени, обеденного перерыва, доступности и квалификации исполнителей.</em></p>
+            <p style="margin-top: 20px;"><em>График рассчитан с учетом рабочего времени, обеденного перерыва, доступности и квалификации исполнителей. Одинаковые задачи на разных захватках выполняются параллельно. Исполнители назначаются на ближайшие захватки по координатам.</em></p>
         `;
 
         contentDiv.innerHTML = html;
