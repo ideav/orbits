@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Рабочее место для управления проектами - Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+
+        .header {
+            background-color: #333;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 15px;
+            margin: 20px;
+            border-radius: 4px;
+        }
+
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            margin: 20px;
+            border-radius: 4px;
+        }
+
+        .content {
+            min-height: 400px;
+        }
+
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+
+        pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Рабочее место для управления проектами</h1>
+        <p>Демонстрационная страница</p>
+    </div>
+
+    <div class="info">
+        <h3>📋 О системе</h3>
+        <p>
+            Эта страница предоставляет рабочее место для управления проектами в статусе "В работе".
+        </p>
+        <p><strong>Возможности:</strong></p>
+        <ul>
+            <li>Просмотр списка всех активных проектов</li>
+            <li>Детальный просмотр плана выполнения задач каждого проекта</li>
+            <li>Очистка планирования проекта</li>
+            <li>Переход к планированию проекта</li>
+        </ul>
+    </div>
+
+    <div class="warning">
+        <h3>⚠️ Важно для работы</h3>
+        <p>Для корректной работы необходимо:</p>
+        <ol>
+            <li>Разместить эту страницу в системе integram.io</li>
+            <li>Убедиться, что доступны глобальные переменные:
+                <ul>
+                    <li><code>window.db</code> - название базы данных</li>
+                    <li><code>window.xsrf</code> - токен для POST-запросов</li>
+                </ul>
+            </li>
+            <li>Настроить правильные ID отчетов в конфигурации <code>project-workspace.js</code></li>
+        </ol>
+    </div>
+
+    <div class="info">
+        <h3>🔧 Конфигурация</h3>
+        <p>В файле <code>project-workspace.js</code> используются следующие настройки:</p>
+        <pre><code>const CONFIG = {
+    // API endpoints
+    projectListReportId: 4363,      // Список проектов
+    executionPlanReportId: 4363,    // План выполнения
+    cleanupReportId: 2310,          // Очистка данных
+
+    // Status ID для фильтрации
+    activeStatusId: 810,            // "В работе"
+};</code></pre>
+        <p>
+            <strong>Примечание:</strong> ID отчетов взяты из примера в задаче.
+            При внедрении в реальную систему убедитесь, что эти ID соответствуют вашей конфигурации.
+        </p>
+    </div>
+
+    <div class="info">
+        <h3>📊 Используемые API</h3>
+        <p>Скрипт взаимодействует со следующими API endpoints:</p>
+        <ul>
+            <li>
+                <strong>Получение списка проектов:</strong><br>
+                <code>GET https://{host}/{db}/report/4363?JSON_KV</code><br>
+                <small>Фильтрация по статусу "В работе" происходит на клиенте</small>
+            </li>
+            <li>
+                <strong>Получение плана проекта:</strong><br>
+                <code>GET https://{host}/{db}/report/4363?FR_ПроектID={ID}&JSON_KV</code>
+            </li>
+            <li>
+                <strong>Очистка планирования:</strong><br>
+                <code>GET https://{host}/{db}/report/2310?FR_ProjID={ID}</code><br>
+                <small>Кнопка становится неактивной на время выполнения</small>
+            </li>
+            <li>
+                <strong>Переход к планированию:</strong><br>
+                <code>https://{host}/{db}/assignment?FR_ProjID={ID}</code>
+            </li>
+        </ul>
+    </div>
+
+    <div class="info">
+        <h3>📋 Структура данных</h3>
+        <p><strong>Таблица проектов содержит колонки:</strong></p>
+        <ul>
+            <li>Проект - название проекта</li>
+            <li>Заказчик - клиент</li>
+            <li>Старт - дата начала</li>
+            <li>Срок - дедлайн</li>
+            <li>Объект - объект работ</li>
+            <li>Действия - кнопка "Посмотреть"</li>
+        </ul>
+
+        <p><strong>Таблица плана выполнения содержит:</strong></p>
+        <ul>
+            <li>Проект</li>
+            <li>Задача проекта</li>
+            <li>Операция</li>
+            <li>Захватка</li>
+            <li>Норматив задачи</li>
+            <li>Норматив операции</li>
+            <li>Длительность задачи</li>
+            <li>Длительность операции</li>
+            <li>Старт задачи</li>
+            <li>Старт операции</li>
+        </ul>
+    </div>
+
+    <div class="info">
+        <h3>🎯 Как использовать</h3>
+        <ol>
+            <li>Подключите скрипт на страницу:
+                <pre><code>&lt;script src="project-workspace.js"&gt;&lt;/script&gt;</code></pre>
+            </li>
+            <li>Создайте контейнер для контента:
+                <pre><code>&lt;div class="content"&gt;&lt;/div&gt;</code></pre>
+            </li>
+            <li>Скрипт автоматически загрузит и отобразит список проектов</li>
+            <li>Нажмите "Посмотреть" для просмотра деталей проекта</li>
+            <li>Используйте кнопки "Очистить планирование" и "Планировать" для управления</li>
+        </ol>
+    </div>
+
+    <!-- Content container where the workspace will be rendered -->
+    <div class="content"></div>
+
+    <!-- Mock global variables for demo (in real system these are provided by integram.io) -->
+    <script>
+        // Mock global variables for demonstration
+        // In production, these will be provided by the integram.io system
+        window.db = 'orbits';
+        window.xsrf = 'mock-xsrf-token';
+
+        // Note: This demo won't actually work without a real backend
+        // It's meant to show the HTML structure and UI
+        console.log('Demo page loaded');
+        console.log('Global variables:', { db: window.db, xsrf: window.xsrf });
+    </script>
+
+    <!-- Include the workspace script -->
+    <script src="project-workspace.js"></script>
+
+</body>
+</html>
