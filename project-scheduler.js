@@ -134,7 +134,7 @@
             throw new Error('Project ID is required for cleanup');
         }
 
-        const url = buildApiUrl(`/report/${CONFIG.cleanupReportId}?FR_ProjID=${projectId}`);
+        const url = buildApiUrl(`/report/${CONFIG.cleanupReportId}?ProjID=${projectId}`);
 
         try {
             console.log(`  Cleanup URL: ${url}`);
