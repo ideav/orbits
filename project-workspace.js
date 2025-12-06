@@ -412,12 +412,9 @@
                             <th>Задача проекта</th>
                             <th>Операция</th>
                             <th>Захватка</th>
-                            <th>Норматив задачи</th>
-                            <th>Норматив операции</th>
                             <th>Длительность задачи</th>
                             <th>Длительность операции</th>
-                            <th>Старт задачи</th>
-                            <th>Старт операции</th>
+                            <th>Исполнитель операции</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -426,7 +423,7 @@
         if (planData.length === 0) {
             html += `
                         <tr>
-                            <td colspan="10" style="text-align: center; padding: 20px;">
+                            <td colspan="7" style="text-align: center; padding: 20px;">
                                 Нет данных для отображения
                             </td>
                         </tr>
@@ -439,12 +436,9 @@
                             <td>${escapeHtml(item['Задача проекта'] || '-')}</td>
                             <td>${escapeHtml(item['Операция'] || '-')}</td>
                             <td>${escapeHtml(item['Захватка (координаты)'] || '-')}</td>
-                            <td>${escapeHtml(item['Норматив задачи'] || '-')}</td>
-                            <td>${escapeHtml(item['Норматив операции'] || '-')}</td>
                             <td>${escapeHtml(item['Длительность задачи'] || '-')}</td>
                             <td>${escapeHtml(item['Длительность операции'] || '-')}</td>
-                            <td>${escapeHtml(item['Старт задачи'] || '-')}</td>
-                            <td>${escapeHtml(item['Старт операции'] || '-')}</td>
+                            <td>${escapeHtml(item['Исполнитель операции'] || '-')}</td>
                         </tr>
                 `;
             });
