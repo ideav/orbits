@@ -59,11 +59,15 @@
         console.log('\nProject table metadata:');
         console.log(JSON.stringify(metadata, null, 2));
 
+        // Handle both response formats: object or array with object
+        // API can return either { id: "663", reqs: [...] } or [{ id: "663", reqs: [...] }]
+        const projectMetadata = Array.isArray(metadata) ? metadata[0] : metadata;
+
         // Step 3: Parse and display field information
         console.log('\n--- Step 3: Field Information ---');
-        if (metadata && metadata[0] && metadata[0].reqs) {
+        if (projectMetadata && projectMetadata.reqs) {
             console.log('\nFields in Project table:');
-            metadata[0].reqs.forEach(field => {
+            projectMetadata.reqs.forEach(field => {
                 console.log(`\n  Field: ${field.val}`);
                 console.log(`    ID: ${field.id}`);
                 console.log(`    Type: ${field.type}`);
@@ -80,7 +84,7 @@
             console.log('\n--- Step 4: Getting reference field options ---');
 
             // Find Status field (Статус проекта)
-            const statusField = metadata[0].reqs.find(f => f.val.includes('Статус'));
+            const statusField = projectMetadata.reqs.find(f => f.val.includes('Статус'));
             if (statusField && statusField.ref) {
                 console.log(`\nFetching options for "${statusField.val}" field...`);
                 const refUrl = buildApiUrl(`/apix/_ref_reqs/${statusField.id}?JSON=1`);
@@ -89,7 +93,7 @@
             }
 
             // Find Parent Project field (Родительский проект)
-            const parentField = metadata[0].reqs.find(f => f.val.includes('Родительский'));
+            const parentField = projectMetadata.reqs.find(f => f.val.includes('Родительский'));
             if (parentField && parentField.ref) {
                 console.log(`\nFetching options for "${parentField.val}" field...`);
                 const refUrl = buildApiUrl(`/apix/_ref_reqs/${parentField.id}?JSON=1`);
@@ -98,7 +102,7 @@
             }
 
             // Find Project Template field (Шаблон Проекта)
-            const templateField = metadata[0].reqs.find(f => f.val.includes('Шаблон'));
+            const templateField = projectMetadata.reqs.find(f => f.val.includes('Шаблон'));
             if (templateField && templateField.ref) {
                 console.log(`\nFetching options for "${templateField.val}" field...`);
                 const refUrl = buildApiUrl(`/apix/_ref_reqs/${templateField.id}?JSON=1`);
