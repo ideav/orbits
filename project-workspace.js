@@ -96,11 +96,15 @@
             const metadataUrl = buildApiUrl(`/orbits/metadata/${projectTableId}?JSON=1`);
             const metadata = await fetchJson(metadataUrl);
 
+            // Handle both response formats: object or array with object
+            // API can return either { id: "663", reqs: [...] } or [{ id: "663", reqs: [...] }]
+            const projectMetadata = Array.isArray(metadata) ? metadata[0] : metadata;
+
             CONFIG.projectTableId = projectTableId;
-            CONFIG.projectMetadata = metadata[0];
+            CONFIG.projectMetadata = projectMetadata;
 
             console.log(`[Workspace] ✓ Project table metadata loaded (${CONFIG.projectMetadata.reqs.length} fields)`);
-            return metadata[0];
+            return projectMetadata;
 
         } catch (error) {
             console.error('[Workspace] ✗ Error fetching project metadata:', error);
