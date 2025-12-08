@@ -3,6 +3,8 @@
 
 > Описание API для системы Интеграм. Версия 1.0
 
+> **Важно:** В примерах ниже `{database}` используется как плейсхолдер для имени вашей базы данных. Замените `{database}` на фактическое имя вашей базы данных (например, `apix`, `mydb` и т.д.). В JavaScript коде имя текущей базы доступно через глобальную переменную `window.db`.
+
 ## Авторизация
 
 ### Получение токенов
@@ -10,7 +12,7 @@
 Авторизация пользователя доступна по API, если вы регистрировались по почте или задали себе пароль после регистрации через соц. сети (Google и другие):
 
 ```bash
-curl --location 'https://integram.io/apix/auth?JSON=1' \
+curl --location 'https://integram.io/{database}/auth?JSON=1' \
 --form 'login="apiuser"' \
 --form 'pwd="************"'
 ```
@@ -31,14 +33,14 @@ curl --location 'https://integram.io/apix/auth?JSON=1' \
 1. **Токен авторизации** следует передавать с каждым запросом в заголовке `Authorization`:
 
 ```bash
-curl --location 'integram.io/apix/metadata/42' \
+curl --location 'integram.io/{database}/metadata/42' \
 --header 'Authorization: ea15dcc3a8cae93e8f5e17e25b6710'
 ```
 
 2. **Токен `_xsrf`** следует передавать с каждым POST-запросом на изменение данных или структуры:
 
 ```bash
-curl --location 'https://integram.io/apix/_d_new?JSON=1' \
+curl --location 'https://integram.io/{database}/_d_new?JSON=1' \
 --form 't="3"' \
 --form 'val="Клиент"' \
 --header 'Authorization: ea15dcc3a8cae93e8f5e17e25b6710' \
@@ -61,7 +63,7 @@ Authorization: Basic Username:Password
 
 ```bash
 curl -u "username:password" \
---location 'https://integram.io/apix/dict?JSON=1'
+--location 'https://integram.io/{database}/dict?JSON=1'
 ```
 
 ### Информация о пользователе
@@ -69,7 +71,7 @@ curl -u "username:password" \
 Когда у вас есть токен, можно узнать остальную информацию о пользователе и сессии, вызвав команду `xsrf`:
 
 ```bash
-curl --location 'https://integram.io/apix/xsrf'
+curl --location 'https://integram.io/{database}/xsrf'
 ```
 
 Ответ будет примерно таким, и вы можете использовать эту информацию:
@@ -95,13 +97,13 @@ curl --location 'https://integram.io/apix/xsrf'
 Команда для описания всех терминов и их свойств и связей — `metadata`. Будучи вызвана без параметров, она возвращает полное описание вашей базы:
 
 ```bash
-curl --location 'https://integram.io/apix/metadata?JSON=1'
+curl --location 'https://integram.io/{database}/metadata?JSON=1'
 ```
 
 Если указать параметр `ID`, то в ответ вернется только описание термина с указанным ID, например, **Пользователь**:
 
 ```bash
-curl --location 'https://integram.io/apix/metadata/18?JSON=1'
+curl --location 'https://integram.io/{database}/metadata/18?JSON=1'
 ```
 
 Здесь виден тип колонки Пользователь — `3` (SHORT) и его реквизиты со своими свойствами и атрибутами.
@@ -235,7 +237,7 @@ curl --location 'https://integram.io/apix/metadata/18?JSON=1'
 Список таблиц, который видно в меню **Таблицы**, можно получить командой `dict`:
 
 ```bash
-curl --location 'https://integram.io/apix/dict?JSON=1'
+curl --location 'https://integram.io/{database}/dict?JSON=1'
 ```
 
 В ответе будет список таблиц вашей базы и их идентификаторы, по которым эти таблицы можно открыть.
@@ -263,7 +265,7 @@ curl --location 'https://integram.io/apix/dict?JSON=1'
 Содержимое таблицы можно посмотреть, вызвав метод `object` с указанием ID таблицы, полученного из метода `dict`, например, **Роль** — `42`:
 
 ```bash
-curl --location 'https://integram.io/apix/object/42?JSON_DATA=1'
+curl --location 'https://integram.io/{database}/object/42?JSON_DATA=1'
 ```
 
 > **Обратите внимание** на использование параметра `JSON_DATA` вместо `JSON`!
@@ -334,7 +336,7 @@ curl --location 'https://integram.io/apix/object/42?JSON_DATA=1'
 Для любой таблицы из списка таблиц мы можем запросить набор записей, например, таблица клиентов, её ID `641`:
 
 ```bash
-curl --location 'https://integram.io/apix/object/641?JSON=1'
+curl --location 'https://integram.io/{database}/object/641?JSON=1'
 ```
 
 В ответе каждая строчка будет представлена объектом, для которого указан ID, родитель (u), порядок среди равных (o) и набор значений колонок таблицы (r):
@@ -377,7 +379,7 @@ curl --location 'https://integram.io/apix/object/641?JSON=1'
 Для запроса справочных значений используется команда `_ref_reqs` с опциональным указанием ID записи, для которой запрашивается справочник:
 
 ```bash
-curl --location 'https://integram.io/apix/_ref_reqs/646?JSON=1&id=649'
+curl --location 'https://integram.io/{database}/_ref_reqs/646?JSON=1&id=649'
 ```
 
 В ответ будут получены значения из справочника, например:
@@ -399,7 +401,7 @@ curl --location 'https://integram.io/apix/_ref_reqs/646?JSON=1&id=649'
 **Пример:** ID колонки **Категория** — `646`, согласно метаданным, и для выбора **Категории Клиент** (ID `660`) у клиента с ID `649` следует отправить такую команду:
 
 ```bash
-curl --location 'https://integram.io/apix/_m_set/649?JSON=1' \
+curl --location 'https://integram.io/{database}/_m_set/649?JSON=1' \
 --form 't646="660"'
 ```
 
@@ -425,7 +427,7 @@ curl --location 'https://integram.io/apix/_m_set/649?JSON=1' \
     Удалить значение выпадающего списка с единственным выбором можно, отправив `" "` (пробел) в качестве значения колонки:
 
     ```bash
-    curl --location 'https://integram.io/apix/_m_set/649?JSON=1' \
+    curl --location 'https://integram.io/{database}/_m_set/649?JSON=1' \
     --form 't646=" "'
     ```
 
@@ -433,7 +435,7 @@ curl --location 'https://integram.io/apix/_m_set/649?JSON=1' \
     Для удаления значения списка с множественным выбором следует вызвать метод `_m_del` с ID удаляемой ссылки:
 
     ```bash
-    curl --location 'https://integram.io/apix/_m_del/654?JSON=1'
+    curl --location 'https://integram.io/{database}/_m_del/654?JSON=1'
     ```
 
 ### Дополнить справочник
@@ -441,7 +443,7 @@ curl --location 'https://integram.io/apix/_m_set/649?JSON=1' \
 При наличии доступа к справочнику вы можете добавлять туда значения командой `_m_new`. Параметры команды мы можем узнать из метаданных таблицы (например, **Клиент**).
 
 ```bash
-curl --location 'integram.io/apix/metadata/641'
+curl --location 'integram.io/{database}/metadata/641'
 ```
 
 Метаданные выглядят вот так, и здесь мы видим ключ `"ref"`, который указывает на ID таблицы, которая используется как справочник.
@@ -480,7 +482,7 @@ curl --location 'integram.io/apix/metadata/641'
 *   `up=1` — родитель записи, для справочников это, как правило, `1`
 
 ```bash
-curl --location 'https://integram.io/apix/_m_new/644?JSON=1' \
+curl --location 'https://integram.io/{database}/_m_new/644?JSON=1' \
 --form 't644="Бывший"' \
 --form 'up="1"'
 ```
@@ -523,7 +525,7 @@ curl --location 'https://integram.io/apix/_m_new/644?JSON=1' \
 **Пример создания клиента:**
 
 ```bash
-curl --location 'https://integram.io/apix/_m_new/641?JSON=1' \
+curl --location 'https://integram.io/{database}/_m_new/641?JSON=1' \
 --form 'up="1"' \
 --form 't641="ООО Вектор"' \
 --form 't642="Южная, 15"' \
@@ -548,7 +550,7 @@ curl --location 'https://integram.io/apix/_m_new/641?JSON=1' \
 При создании записи можно сразу указать значения для ссылочных полей, передав ID записи из справочника:
 
 ```bash
-curl --location 'https://integram.io/apix/_m_new/641?JSON=1' \
+curl --location 'https://integram.io/{database}/_m_new/641?JSON=1' \
 --form 'up="1"' \
 --form 't641="ООО Вектор"' \
 --form 't646="660"'
@@ -561,7 +563,7 @@ curl --location 'https://integram.io/apix/_m_new/641?JSON=1' \
 Если вы хотите создать новое значение в справочнике прямо при создании основной записи, используйте параметр `NEW_{ID реквизита}`:
 
 ```bash
-curl --location 'https://integram.io/apix/_m_new/641?JSON=1' \
+curl --location 'https://integram.io/{database}/_m_new/641?JSON=1' \
 --form 'up="1"' \
 --form 't641="ООО Вектор"' \
 --form 'NEW_646="Партнёр"'
@@ -602,7 +604,7 @@ curl --location 'https://integram.io/apix/_m_new/641?JSON=1' \
 Для изменения значений отдельных полей существующей записи используется команда `_m_set` с указанием ID редактируемой записи:
 
 ```bash
-curl --location 'https://integram.io/apix/_m_set/649?JSON=1' \
+curl --location 'https://integram.io/{database}/_m_set/649?JSON=1' \
 --form 't642="Летняя, 21А"' \
 --form 't643="8(555)9998877"'
 ```
@@ -629,14 +631,14 @@ curl --location 'https://integram.io/apix/_m_set/649?JSON=1' \
 Для изменения значения в ссылочном поле с единственным выбором передайте ID нового значения из справочника:
 
 ```bash
-curl --location 'https://integram.io/apix/_m_set/649?JSON=1' \
+curl --location 'https://integram.io/{database}/_m_set/649?JSON=1' \
 --form 't646="661"'
 ```
 
 Чтобы **очистить** значение ссылочного поля с единственным выбором, передайте пробел:
 
 ```bash
-curl --location 'https://integram.io/apix/_m_set/649?JSON=1' \
+curl --location 'https://integram.io/{database}/_m_set/649?JSON=1' \
 --form 't646=" "'
 ```
 
@@ -645,7 +647,7 @@ curl --location 'https://integram.io/apix/_m_set/649?JSON=1' \
 Для ссылочных полей с атрибутом `:MULTI:` можно передавать массив значений или добавлять значения по одному:
 
 ```bash
-curl --location 'https://integram.io/apix/_m_set/649?JSON=1' \
+curl --location 'https://integram.io/{database}/_m_set/649?JSON=1' \
 --form 't648="618"' \
 --form 't648="619"'
 ```
@@ -653,7 +655,7 @@ curl --location 'https://integram.io/apix/_m_set/649?JSON=1' \
 Или передать массив в одном параметре:
 
 ```bash
-curl --location 'https://integram.io/apix/_m_set/649?JSON=1' \
+curl --location 'https://integram.io/{database}/_m_set/649?JSON=1' \
 --form 't648[]=618' \
 --form 't648[]=619'
 ```
@@ -665,7 +667,7 @@ curl --location 'https://integram.io/apix/_m_set/649?JSON=1' \
 Для загрузки файла используйте `_m_set` с передачей файла в поле, соответствующем ID реквизита с типом FILE:
 
 ```bash
-curl --location 'https://integram.io/apix/_m_set/649?JSON=1' \
+curl --location 'https://integram.io/{database}/_m_set/649?JSON=1' \
 --form 't651=@"/path/to/document.pdf"'
 ```
 
@@ -676,7 +678,7 @@ curl --location 'https://integram.io/apix/_m_set/649?JSON=1' \
 Чтобы удалить значение обычного поля (не ссылочного), передайте пустую строку:
 
 ```bash
-curl --location 'https://integram.io/apix/_m_set/649?JSON=1' \
+curl --location 'https://integram.io/{database}/_m_set/649?JSON=1' \
 --form 't643=""'
 ```
 
@@ -689,7 +691,7 @@ curl --location 'https://integram.io/apix/_m_set/649?JSON=1' \
 Для удаления записи используется команда `_m_del` с указанием ID удаляемой записи:
 
 ```bash
-curl --location 'https://integram.io/apix/_m_del/670?JSON=1'
+curl --location 'https://integram.io/{database}/_m_del/670?JSON=1'
 ```
 
 Ответ подтвердит удаление:
@@ -730,7 +732,7 @@ curl --location 'https://integram.io/apix/_m_del/670?JSON=1'
 Для удаления отдельного значения из поля с множественным выбором используйте `_m_del` с ID конкретной ссылки (не основной записи):
 
 ```bash
-curl --location 'https://integram.io/apix/_m_del/654?JSON=1'
+curl --location 'https://integram.io/{database}/_m_del/654?JSON=1'
 ```
 
 Где `654` — ID связи между записью и значением справочника. Этот ID можно получить при запросе записи через `object` с параметром `JSON_DATA`.
@@ -742,7 +744,7 @@ curl --location 'https://integram.io/apix/_m_del/654?JSON=1'
 Для создания копии существующей записи со всеми её реквизитами используйте команду `_m_save` с параметром `copybtn`:
 
 ```bash
-curl --location 'https://integram.io/apix/_m_save/649?JSON=1' \
+curl --location 'https://integram.io/{database}/_m_save/649?JSON=1' \
 --form 'copybtn="1"'
 ```
 
@@ -763,7 +765,7 @@ curl --location 'https://integram.io/apix/_m_save/649?JSON=1' \
 Вы можете изменить значение основного поля при копировании, передав параметр `t{ID типа}`:
 
 ```bash
-curl --location 'https://integram.io/apix/_m_save/649?JSON=1' \
+curl --location 'https://integram.io/{database}/_m_save/649?JSON=1' \
 --form 'copybtn="1"' \
 --form 't641="АО Ромашка (копия)"'
 ```
