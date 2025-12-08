@@ -1,4 +1,93 @@
 ```markdown
+# API для Интеграм
+
+> Описание API для системы Интеграм. Версия 1.0
+
+## Авторизация
+
+### Получение токенов
+
+Авторизация пользователя доступна по API, если вы регистрировались по почте или задали себе пароль после регистрации через соц. сети (Google и другие):
+
+```bash
+curl --location 'https://integram.io/apix/auth?JSON=1' \
+--form 'login="apiuser"' \
+--form 'pwd="************"'
+```
+
+В ответ придет JSON с токенами XSRF и авторизационным:
+
+```json
+{
+    "_xsrf": "cd4b6417a3940ed4a84h074d",
+    "token": "ea15dcc3a8cae93e8f5e17e25b6710",
+    "id": "632",
+    "msg": ""
+}
+```
+
+### Использование токенов
+
+1. **Токен авторизации** следует передавать с каждым запросом в заголовке `Authorization`:
+
+```bash
+curl --location 'integram.io/apix/metadata/42' \
+--header 'Authorization: ea15dcc3a8cae93e8f5e17e25b6710'
+```
+
+2. **Токен `_xsrf`** следует передавать с каждым POST-запросом на изменение данных или структуры:
+
+```bash
+curl --location 'https://integram.io/apix/_d_new?JSON=1' \
+--form 't="3"' \
+--form 'val="Клиент"' \
+--header 'Authorization: ea15dcc3a8cae93e8f5e17e25b6710' \
+--form '_xsrf="1cb413634d074d3804ed48"'
+```
+
+> **Примечание:** В дальнейших примерах, для компактности, мы будем опускать эти параметры: токен авторизации и xsrf.
+
+### Basic HTTP Authentication
+
+Также возможен вариант более простой авторизации, так называемая Basic HTTP Authentication, когда имя и пароль передаются в заголовке каждого запроса:
+
+```
+Authorization: Basic Username:Password
+```
+
+По RFC7617 фрагмент `Username:Password` должен быть закодирован в BASE64, однако, для простоты допускается отправить его без кодирования, это тоже сработает.
+
+Пример использования:
+
+```bash
+curl -u "username:password" \
+--location 'https://integram.io/apix/dict?JSON=1'
+```
+
+### Информация о пользователе
+
+Когда у вас есть токен, можно узнать остальную информацию о пользователе и сессии, вызвав команду `xsrf`:
+
+```bash
+curl --location 'https://integram.io/apix/xsrf'
+```
+
+Ответ будет примерно таким, и вы можете использовать эту информацию:
+
+```json
+{
+    "_xsrf": "cd4b6417a3940ed4a84h074d",
+    "token": "ea15dcc3a8cae93e8f5e17e25b6710",
+    "user": "apiuser",
+    "role": "api",
+    "id": "632",
+    "msg": ""
+}
+```
+
+---
+
+```markdown
 # Описание данных
 
 ## Команда metadata
