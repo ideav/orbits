@@ -369,10 +369,16 @@
     </div>
 </div>
 
-<script src="https://{host}/download/{db}/js/projects.js"></script>
 <script>
-    // Initialize on page load
-    if (typeof initProjectsWorkspace === 'function') {
-        initProjectsWorkspace();
-    }
+    // Load projects.js dynamically
+    (function() {
+        var script = document.createElement('script');
+        script.src = 'https://' + window.location.host + '/download/' + db + '/js/projects.js';
+        script.onload = function() {
+            if (typeof initProjectsWorkspace === 'function') {
+                initProjectsWorkspace();
+            }
+        };
+        document.head.appendChild(script);
+    })();
 </script>
