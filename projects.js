@@ -18,6 +18,13 @@ let dictionaries = {
     workTypes: []
 };
 
+// State for remembering Direction and Work Type selections per task
+let lastOperationFilters = {
+    taskId: null,
+    direction: '',
+    workType: ''
+};
+
 /**
  * Initialize the projects workspace
  */
@@ -198,6 +205,10 @@ function onDirectionChange(event) {
     const workTypeSelect = document.getElementById('operationWorkType');
     const operationSelect = document.getElementById('operationTemplate');
 
+    // Save selected direction to state
+    lastOperationFilters.direction = selectedDirection;
+    lastOperationFilters.workType = ''; // Reset work type when direction changes
+
     // Reset work type dropdown
     if (workTypeSelect) {
         while (workTypeSelect.options.length > 1) {
@@ -243,6 +254,9 @@ function onDirectionChange(event) {
 function onWorkTypeChange(event) {
     const selectedDirection = document.getElementById('operationDirection').value;
     const selectedWorkType = event.target.value;
+
+    // Save selected work type to state
+    lastOperationFilters.workType = selectedWorkType;
 
     filterOperationTemplates(selectedDirection, selectedWorkType);
 }
@@ -300,6 +314,35 @@ function resetOperationFilters() {
         operationSelect.value = '';
         while (operationSelect.options.length > 1) {
             operationSelect.remove(1);
+        }
+    }
+}
+
+/**
+ * Restore operation filter dropdowns from saved state
+ */
+function restoreOperationFilters() {
+    const directionSelect = document.getElementById('operationDirection');
+    const workTypeSelect = document.getElementById('operationWorkType');
+
+    // Restore direction if it was previously selected
+    if (lastOperationFilters.direction && directionSelect) {
+        directionSelect.value = lastOperationFilters.direction;
+
+        // Trigger direction change to populate work types
+        const event = new Event('change');
+        directionSelect.dispatchEvent(event);
+
+        // After work types are populated, restore work type selection
+        if (lastOperationFilters.workType && workTypeSelect) {
+            // Need to wait a bit for the work type dropdown to be populated
+            setTimeout(() => {
+                workTypeSelect.value = lastOperationFilters.workType;
+
+                // Trigger work type change to filter operations
+                const workTypeEvent = new Event('change');
+                workTypeSelect.dispatchEvent(workTypeEvent);
+            }, 0);
         }
     }
 }
@@ -788,8 +831,16 @@ function showAddOperationModal(taskId) {
     document.getElementById('operationId').value = '';
     document.getElementById('operationTaskId').value = taskId;
 
-    // Reset filter dropdowns
-    resetOperationFilters();
+    // If switching to a different task, reset filters and clear state
+    if (lastOperationFilters.taskId !== taskId) {
+        lastOperationFilters.taskId = taskId;
+        lastOperationFilters.direction = '';
+        lastOperationFilters.workType = '';
+        resetOperationFilters();
+    } else {
+        // Same task - restore previous selections
+        restoreOperationFilters();
+    }
 
     document.getElementById('operationModalBackdrop').classList.add('show');
 }
