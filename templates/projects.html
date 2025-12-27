@@ -6,12 +6,18 @@
     }
 
     .search-box {
-        margin-bottom: 20px;
         padding: 10px;
         border: 1px solid #ced4da;
         border-radius: 4px;
-        width: 100%;
+        flex: 1;
         font-size: 14px;
+    }
+
+    .controls-row {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        align-items: center;
     }
 
     .project-list {
@@ -53,7 +59,7 @@
     }
 
     .btn-add-project {
-        margin-bottom: 20px;
+        white-space: nowrap;
     }
 
     .task-section {
@@ -211,11 +217,13 @@
 <div class="project-list-container">
     <div class="section-title">Управление проектами</div>
 
-    <button class="btn btn-primary btn-add-project" onclick="showAddProjectModal()">
-        + Добавить проект
-    </button>
+    <div class="controls-row">
+        <button class="btn btn-primary btn-add-project" onclick="showAddProjectModal()">
+            + Добавить проект
+        </button>
 
-    <input type="text" class="search-box" id="projectSearch" placeholder="Поиск по любому полю..." onkeyup="filterProjects()">
+        <input type="text" class="search-box" id="projectSearch" placeholder="Поиск по любому полю..." onkeyup="filterProjects()">
+    </div>
 
     <div class="project-list" id="projectList">
         <!-- Projects will be loaded here -->
