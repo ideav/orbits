@@ -822,6 +822,10 @@ function showAddTaskModal() {
     document.getElementById('taskForm').reset();
     document.getElementById('taskId').value = '';
     document.getElementById('taskProjectId').value = selectedProject['ПроектID'];
+
+    // Hide delete button when adding new task
+    document.getElementById('deleteTaskBtn').classList.add('hidden');
+
     document.getElementById('taskModalBackdrop').classList.add('show');
 }
 
@@ -864,6 +868,9 @@ function editTask(taskId) {
         unitSelect.value = unitOption.value;
     }
 
+    // Show delete button when editing existing task
+    document.getElementById('deleteTaskBtn').classList.remove('hidden');
+
     document.getElementById('taskModalBackdrop').classList.add('show');
 }
 
@@ -886,6 +893,9 @@ function showAddOperationModal(taskId) {
         // Same task - restore previous selections
         restoreOperationFilters();
     }
+
+    // Hide delete button when adding new operation
+    document.getElementById('deleteOperationBtn').classList.add('hidden');
 
     document.getElementById('operationModalBackdrop').classList.add('show');
 }
@@ -974,6 +984,9 @@ function editOperation(operationId) {
     if (opData['Операция Начать']) {
         document.getElementById('operationStart').value = formatDateTimeForInput(opData['Операция Начать']);
     }
+
+    // Show delete button when editing existing operation
+    document.getElementById('deleteOperationBtn').classList.remove('hidden');
 
     document.getElementById('operationModalBackdrop').classList.add('show');
 }
@@ -1276,6 +1289,56 @@ function deleteItem(itemId) {
         console.log('Item deleted:', data);
         return data;
     });
+}
+
+/**
+ * Confirm deletion of task from edit form
+ */
+function confirmDeleteTask() {
+    const taskId = document.getElementById('taskId').value;
+    if (!taskId) return;
+
+    const taskData = projectDetails.find(item => item['Задача проектаID'] === taskId);
+    const taskName = taskData ? taskData['Задача проекта'] : '';
+
+    if (confirm(`Вы уверены, что хотите удалить задачу "${taskName}"?`)) {
+        deleteItem(taskId)
+            .then(() => {
+                closeTaskModal();
+                if (selectedProject) {
+                    loadProjectDetails(selectedProject['ПроектID']);
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting task:', error);
+                alert('Ошибка при удалении задачи');
+            });
+    }
+}
+
+/**
+ * Confirm deletion of operation from edit form
+ */
+function confirmDeleteOperation() {
+    const operationId = document.getElementById('operationId').value;
+    if (!operationId) return;
+
+    const opData = projectDetails.find(item => item['ОперацияID'] === operationId);
+    const operationName = opData ? opData['Операция'] : '';
+
+    if (confirm(`Вы уверены, что хотите удалить операцию "${operationName}"?`)) {
+        deleteItem(operationId)
+            .then(() => {
+                closeOperationModal();
+                if (selectedProject) {
+                    loadProjectDetails(selectedProject['ПроектID']);
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting operation:', error);
+                alert('Ошибка при удалении операции');
+            });
+    }
 }
 
 /**
