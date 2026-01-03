@@ -786,6 +786,10 @@ function showAddProjectModal() {
     document.getElementById('projectModalTitle').textContent = 'Добавить проект';
     document.getElementById('projectForm').reset();
     document.getElementById('projectId').value = '';
+
+    // Show the first tab by default
+    $('#projectInfo-tab').tab('show');
+
     document.getElementById('projectModalBackdrop').classList.add('show');
 }
 
@@ -844,6 +848,9 @@ function editProject() {
 
     // Load project products
     loadProjectProducts(selectedProject['ПроектID']);
+
+    // Show the first tab by default
+    $('#projectInfo-tab').tab('show');
 
     document.getElementById('projectModalBackdrop').classList.add('show');
 }
@@ -1609,6 +1616,18 @@ function populateProductSelect() {
  * Filter product dropdown based on search input
  */
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tab switching for project modal
+    // Use jQuery's tab() method to handle clicks since stopPropagation() on modal prevents default Bootstrap behavior
+    $('#projectInfo-tab').on('click', function(e) {
+        e.preventDefault();
+        $(this).tab('show');
+    });
+
+    $('#projectProducts-tab').on('click', function(e) {
+        e.preventDefault();
+        $(this).tab('show');
+    });
+
     const productSearchInput = document.getElementById('productSearch');
     if (productSearchInput) {
         productSearchInput.addEventListener('keyup', function() {
