@@ -293,6 +293,118 @@
     .operations-hidden {
         display: none;
     }
+
+    /* Custom searchable select styles (like select2) */
+    .custom-select-wrapper {
+        position: relative;
+        width: 100%;
+    }
+
+    .custom-select-trigger {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 14px;
+        background-color: white;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        user-select: none;
+    }
+
+    .custom-select-trigger:hover {
+        border-color: #80bdff;
+    }
+
+    .custom-select-trigger.active {
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    }
+
+    .custom-select-arrow {
+        margin-left: 8px;
+        transition: transform 0.2s;
+    }
+
+    .custom-select-trigger.active .custom-select-arrow {
+        transform: rotate(180deg);
+    }
+
+    .custom-select-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background-color: white;
+        border: 1px solid #ced4da;
+        border-top: none;
+        border-radius: 0 0 4px 4px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        z-index: 1000;
+        display: none;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    .custom-select-dropdown.active {
+        display: block;
+    }
+
+    .custom-select-search {
+        position: sticky;
+        top: 0;
+        background-color: white;
+        padding: 8px;
+        border-bottom: 1px solid #ced4da;
+    }
+
+    .custom-select-search input {
+        width: 100%;
+        padding: 6px 8px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .custom-select-search input:focus {
+        outline: none;
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    }
+
+    .custom-select-options {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .custom-select-option {
+        padding: 8px 12px;
+        cursor: pointer;
+        transition: background-color 0.1s;
+    }
+
+    .custom-select-option:hover {
+        background-color: #f8f9fa;
+    }
+
+    .custom-select-option.selected {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .custom-select-option.hidden {
+        display: none;
+    }
+
+    .custom-select-no-results {
+        padding: 8px 12px;
+        color: #6c757d;
+        text-align: center;
+        font-style: italic;
+    }
 </style>
 
 <div class="project-list-container">
@@ -407,10 +519,23 @@
                     <div class="form-group">
                         <label>Добавить изделие</label>
                         <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                            <input type="text" class="form-control-custom" id="productSearch" placeholder="Поиск изделия..." style="flex: 1;">
-                            <select class="form-control-custom" id="productSelect" style="flex: 2;">
-                                <option value="">Выберите изделие</option>
-                            </select>
+                            <div class="custom-select-wrapper" style="flex: 3;">
+                                <div class="custom-select-trigger" id="productSelectTrigger">
+                                    <span id="productSelectText">Выберите изделие</span>
+                                    <span class="custom-select-arrow">▼</span>
+                                </div>
+                                <div class="custom-select-dropdown" id="productSelectDropdown">
+                                    <div class="custom-select-search">
+                                        <input type="text" id="productSearch" placeholder="Поиск изделия..." autocomplete="off">
+                                    </div>
+                                    <ul class="custom-select-options" id="productSelectOptions">
+                                        <!-- Options will be populated by JavaScript -->
+                                    </ul>
+                                    <div class="custom-select-no-results hidden" id="productNoResults">Ничего не найдено</div>
+                                </div>
+                                <!-- Hidden input to store selected value -->
+                                <input type="hidden" id="productSelect" value="">
+                            </div>
                             <button type="button" class="btn btn-primary" onclick="addProductToProject()">Добавить</button>
                         </div>
                     </div>

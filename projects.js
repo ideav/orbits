@@ -850,6 +850,9 @@ function showAddProjectModal() {
     document.getElementById('projectForm').reset();
     document.getElementById('projectId').value = '';
 
+    // Reset custom product select
+    resetProductSelect();
+
     // Show the first tab by default
     $('#projectInfo-tab').tab('show');
 
@@ -911,6 +914,9 @@ function editProject() {
 
     // Load project products
     loadProjectProducts(selectedProject['ПроектID']);
+
+    // Reset custom product select
+    resetProductSelect();
 
     // Show the first tab by default
     $('#projectInfo-tab').tab('show');
@@ -1657,22 +1663,165 @@ function loadProjectProducts(projectId) {
  * Populate the product select dropdown
  */
 function populateProductSelect() {
-    const select = document.getElementById('productSelect');
+    const optionsList = document.getElementById('productSelectOptions');
 
-    // Clear existing options except the first one
-    while (select.options.length > 1) {
-        select.remove(1);
-    }
+    // Clear existing options
+    optionsList.innerHTML = '';
 
-    // Add new options
+    // Add new options to custom select
     allProducts.forEach(product => {
-        const option = document.createElement('option');
-        option.value = product['ИзделиеID'];
-        option.textContent = `${product['Изделие']} (${product['Конструкций']})`;
-        option.dataset.name = product['Изделие'];
-        option.dataset.constructions = product['Конструкций'];
-        select.appendChild(option);
+        const li = document.createElement('li');
+        li.className = 'custom-select-option';
+        li.dataset.value = product['ИзделиеID'];
+        li.dataset.name = product['Изделие'];
+        li.dataset.constructions = product['Конструкций'];
+        li.textContent = `${product['Изделие']} (${product['Конструкций']})`;
+
+        // Add click handler for option selection
+        li.addEventListener('click', function() {
+            selectProductOption(this);
+        });
+
+        optionsList.appendChild(li);
     });
+}
+
+/**
+ * Handle custom select option selection
+ */
+function selectProductOption(optionElement) {
+    const hiddenInput = document.getElementById('productSelect');
+    const triggerText = document.getElementById('productSelectText');
+    const dropdown = document.getElementById('productSelectDropdown');
+    const trigger = document.getElementById('productSelectTrigger');
+
+    // Update hidden input value
+    hiddenInput.value = optionElement.dataset.value;
+
+    // Update trigger text
+    triggerText.textContent = optionElement.textContent;
+
+    // Remove selected class from all options
+    document.querySelectorAll('.custom-select-option').forEach(opt => {
+        opt.classList.remove('selected');
+    });
+
+    // Add selected class to clicked option
+    optionElement.classList.add('selected');
+
+    // Close dropdown
+    dropdown.classList.remove('active');
+    trigger.classList.remove('active');
+
+    // Clear search
+    const searchInput = document.getElementById('productSearch');
+    if (searchInput) {
+        searchInput.value = '';
+        filterProductOptions('');
+    }
+}
+
+/**
+ * Filter product options based on search term
+ */
+function filterProductOptions(searchTerm) {
+    const options = document.querySelectorAll('.custom-select-option');
+    const noResults = document.getElementById('productNoResults');
+    let visibleCount = 0;
+
+    searchTerm = searchTerm.toLowerCase();
+
+    options.forEach(option => {
+        const text = option.textContent.toLowerCase();
+        if (text.includes(searchTerm)) {
+            option.classList.remove('hidden');
+            visibleCount++;
+        } else {
+            option.classList.add('hidden');
+        }
+    });
+
+    // Show/hide no results message
+    if (visibleCount === 0) {
+        noResults.classList.remove('hidden');
+    } else {
+        noResults.classList.add('hidden');
+    }
+}
+
+/**
+ * Initialize custom select dropdown behavior
+ */
+function initCustomProductSelect() {
+    const trigger = document.getElementById('productSelectTrigger');
+    const dropdown = document.getElementById('productSelectDropdown');
+    const searchInput = document.getElementById('productSearch');
+
+    if (!trigger || !dropdown || !searchInput) return;
+
+    // Toggle dropdown on trigger click
+    trigger.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const isActive = dropdown.classList.contains('active');
+
+        if (isActive) {
+            dropdown.classList.remove('active');
+            trigger.classList.remove('active');
+        } else {
+            dropdown.classList.add('active');
+            trigger.classList.add('active');
+            // Focus search input when opening
+            setTimeout(() => searchInput.focus(), 100);
+        }
+    });
+
+    // Handle search input
+    searchInput.addEventListener('input', function() {
+        filterProductOptions(this.value);
+    });
+
+    // Prevent dropdown close when clicking inside search
+    searchInput.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!trigger.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.remove('active');
+            trigger.classList.remove('active');
+        }
+    });
+
+    // Prevent dropdown close when clicking inside options area
+    dropdown.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+}
+
+/**
+ * Reset custom product select to default state
+ */
+function resetProductSelect() {
+    const hiddenInput = document.getElementById('productSelect');
+    const triggerText = document.getElementById('productSelectText');
+    const searchInput = document.getElementById('productSearch');
+    const dropdown = document.getElementById('productSelectDropdown');
+    const trigger = document.getElementById('productSelectTrigger');
+
+    if (hiddenInput) hiddenInput.value = '';
+    if (triggerText) triggerText.textContent = 'Выберите изделие';
+    if (searchInput) searchInput.value = '';
+    if (dropdown) dropdown.classList.remove('active');
+    if (trigger) trigger.classList.remove('active');
+
+    // Remove selected class from all options
+    document.querySelectorAll('.custom-select-option').forEach(opt => {
+        opt.classList.remove('selected');
+    });
+
+    // Show all options
+    filterProductOptions('');
 }
 
 /**
@@ -1693,25 +1842,8 @@ $(document).ready(function() {
         $(this).tab('show');
     });
 
-    // Filter product dropdown based on search input
-    const productSearchInput = document.getElementById('productSearch');
-    if (productSearchInput) {
-        productSearchInput.addEventListener('keyup', function() {
-            const searchTerm = this.value.toLowerCase();
-            const select = document.getElementById('productSelect');
-
-            Array.from(select.options).forEach((option, index) => {
-                if (index === 0) return; // Skip first option
-
-                const text = option.textContent.toLowerCase();
-                if (text.includes(searchTerm)) {
-                    option.style.display = '';
-                } else {
-                    option.style.display = 'none';
-                }
-            });
-        });
-    }
+    // Initialize custom product select dropdown
+    initCustomProductSelect();
 });
 
 /**

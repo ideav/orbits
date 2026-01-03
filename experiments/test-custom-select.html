@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Custom Select Dropdown</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Custom searchable select styles (like select2) */
+        .custom-select-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        .custom-select-trigger {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+            background-color: white;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+
+        .custom-select-trigger:hover {
+            border-color: #80bdff;
+        }
+
+        .custom-select-trigger.active {
+            border-color: #80bdff;
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+        }
+
+        .custom-select-arrow {
+            margin-left: 8px;
+            transition: transform 0.2s;
+        }
+
+        .custom-select-trigger.active .custom-select-arrow {
+            transform: rotate(180deg);
+        }
+
+        .custom-select-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: white;
+            border: 1px solid #ced4da;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1000;
+            display: none;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .custom-select-dropdown.active {
+            display: block;
+        }
+
+        .custom-select-search {
+            position: sticky;
+            top: 0;
+            background-color: white;
+            padding: 8px;
+            border-bottom: 1px solid #ced4da;
+        }
+
+        .custom-select-search input {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .custom-select-search input:focus {
+            outline: none;
+            border-color: #80bdff;
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+        }
+
+        .custom-select-options {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .custom-select-option {
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.1s;
+        }
+
+        .custom-select-option:hover {
+            background-color: #f8f9fa;
+        }
+
+        .custom-select-option.selected {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .custom-select-option.hidden {
+            display: none;
+        }
+
+        .custom-select-no-results {
+            padding: 8px 12px;
+            color: #6c757d;
+            text-align: center;
+            font-style: italic;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test: Custom Searchable Select (Like Select2)</h1>
+
+    <p>This test demonstrates the custom dropdown with integrated search field.</p>
+
+    <div class="custom-select-wrapper">
+        <div class="custom-select-trigger" id="productSelectTrigger">
+            <span id="productSelectText">Выберите изделие</span>
+            <span class="custom-select-arrow">▼</span>
+        </div>
+        <div class="custom-select-dropdown" id="productSelectDropdown">
+            <div class="custom-select-search">
+                <input type="text" id="productSearch" placeholder="Поиск изделия..." autocomplete="off">
+            </div>
+            <ul class="custom-select-options" id="productSelectOptions">
+                <!-- Options will be populated by JavaScript -->
+            </ul>
+            <div class="custom-select-no-results hidden" id="productNoResults">Ничего не найдено</div>
+        </div>
+        <input type="hidden" id="productSelect" value="">
+    </div>
+
+    <div class="result">
+        <strong>Selected Value:</strong> <span id="selectedValue">None</span>
+    </div>
+
+    <script>
+        // Mock product data for testing
+        const mockProducts = [
+            { id: 1, name: 'Шкаф-купе', constructions: 5 },
+            { id: 2, name: 'Кухонный гарнитур', constructions: 12 },
+            { id: 3, name: 'Прихожая', constructions: 3 },
+            { id: 4, name: 'Гардеробная', constructions: 8 },
+            { id: 5, name: 'Детская комната', constructions: 6 },
+            { id: 6, name: 'Спальня', constructions: 4 },
+            { id: 7, name: 'Офисная мебель', constructions: 10 },
+            { id: 8, name: 'Стеллаж', constructions: 2 },
+            { id: 9, name: 'Шкаф встроенный', constructions: 7 },
+            { id: 10, name: 'Комод', constructions: 3 }
+        ];
+
+        // Populate select with mock data
+        function populateProductSelect() {
+            const optionsList = document.getElementById('productSelectOptions');
+            optionsList.innerHTML = '';
+
+            mockProducts.forEach(product => {
+                const li = document.createElement('li');
+                li.className = 'custom-select-option';
+                li.dataset.value = product.id;
+                li.dataset.name = product.name;
+                li.dataset.constructions = product.constructions;
+                li.textContent = `${product.name} (${product.constructions})`;
+
+                li.addEventListener('click', function() {
+                    selectProductOption(this);
+                });
+
+                optionsList.appendChild(li);
+            });
+        }
+
+        // Handle option selection
+        function selectProductOption(optionElement) {
+            const hiddenInput = document.getElementById('productSelect');
+            const triggerText = document.getElementById('productSelectText');
+            const dropdown = document.getElementById('productSelectDropdown');
+            const trigger = document.getElementById('productSelectTrigger');
+            const selectedValueDisplay = document.getElementById('selectedValue');
+
+            hiddenInput.value = optionElement.dataset.value;
+            triggerText.textContent = optionElement.textContent;
+            selectedValueDisplay.textContent = `${optionElement.dataset.name} (ID: ${optionElement.dataset.value})`;
+
+            document.querySelectorAll('.custom-select-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            optionElement.classList.add('selected');
+
+            dropdown.classList.remove('active');
+            trigger.classList.remove('active');
+
+            const searchInput = document.getElementById('productSearch');
+            if (searchInput) {
+                searchInput.value = '';
+                filterProductOptions('');
+            }
+        }
+
+        // Filter options
+        function filterProductOptions(searchTerm) {
+            const options = document.querySelectorAll('.custom-select-option');
+            const noResults = document.getElementById('productNoResults');
+            let visibleCount = 0;
+
+            searchTerm = searchTerm.toLowerCase();
+
+            options.forEach(option => {
+                const text = option.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    option.classList.remove('hidden');
+                    visibleCount++;
+                } else {
+                    option.classList.add('hidden');
+                }
+            });
+
+            if (visibleCount === 0) {
+                noResults.classList.remove('hidden');
+            } else {
+                noResults.classList.add('hidden');
+            }
+        }
+
+        // Initialize dropdown
+        function initCustomProductSelect() {
+            const trigger = document.getElementById('productSelectTrigger');
+            const dropdown = document.getElementById('productSelectDropdown');
+            const searchInput = document.getElementById('productSearch');
+
+            if (!trigger || !dropdown || !searchInput) return;
+
+            trigger.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const isActive = dropdown.classList.contains('active');
+
+                if (isActive) {
+                    dropdown.classList.remove('active');
+                    trigger.classList.remove('active');
+                } else {
+                    dropdown.classList.add('active');
+                    trigger.classList.add('active');
+                    setTimeout(() => searchInput.focus(), 100);
+                }
+            });
+
+            searchInput.addEventListener('input', function() {
+                filterProductOptions(this.value);
+            });
+
+            searchInput.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+
+            document.addEventListener('click', function(e) {
+                if (!trigger.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.classList.remove('active');
+                    trigger.classList.remove('active');
+                }
+            });
+
+            dropdown.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            populateProductSelect();
+            initCustomProductSelect();
+        });
+    </script>
+</body>
+</html>
