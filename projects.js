@@ -639,6 +639,25 @@ function toggleOperations(taskId) {
 }
 
 /**
+ * Expand all operations for all tasks
+ */
+function expandAllOperations() {
+    // Find all operation items
+    const operations = document.querySelectorAll('.operation-item');
+
+    // Remove the operations-hidden class from all operations
+    operations.forEach(operation => {
+        operation.classList.remove('operations-hidden');
+    });
+
+    // Expand all chevrons
+    const chevrons = document.querySelectorAll('.chevron');
+    chevrons.forEach(chevron => {
+        chevron.classList.add('expanded');
+    });
+}
+
+/**
  * Add drag and drop handlers for reordering
  */
 function addDragAndDropHandlers() {
@@ -1363,6 +1382,14 @@ function toggleDeleteMode() {
     // Refresh the task list to show/hide checkboxes
     if (selectedProject) {
         loadProjectDetails(selectedProject['ПроектID']);
+    }
+
+    // Expand all operations when entering deletion mode
+    if (deleteModeActive) {
+        // Use setTimeout to ensure the DOM is updated after loadProjectDetails
+        setTimeout(() => {
+            expandAllOperations();
+        }, 0);
     }
 }
 
