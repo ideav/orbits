@@ -440,32 +440,75 @@ function filterProjects() {
 }
 
 /**
- * Filter tasks and operations based on search input
+ * Filter tasks and operations based on search input and dropdown filters
  */
 function filterTasksAndOperations() {
     const searchTerm = document.getElementById('taskSearch').value.toLowerCase();
+    const directionFilter = document.getElementById('directionFilter')?.value || '';
+    const workTypeFilter = document.getElementById('workTypeFilter')?.value || '';
+    const projectStageFilter = document.getElementById('projectStageFilter')?.value || '';
 
     const filtered = projectDetails.filter(item => {
-        // Search in all item fields
-        const matchesInItem = Object.values(item).some(value =>
-            value && value.toString().toLowerCase().includes(searchTerm)
-        );
+        // Check project stage filter
+        if (projectStageFilter && item['Этап проекта'] !== projectStageFilter) {
+            return false;
+        }
 
-        // For operations, also search in template's Direction and Work Type
+        // For operations, check direction and work type filters
         if (item['ОперацияID'] && item['Операция (шаблон)ID']) {
             const templateId = item['Операция (шаблон)ID'];
             const template = dictionaries.operationTemplates.find(t => t['Операция (шаблон)ID'] === templateId);
             if (template) {
                 const direction = template['Направление'] || '';
                 const workType = template['Вид работ'] || '';
-                const matchesInTemplate =
-                    direction.toLowerCase().includes(searchTerm) ||
-                    workType.toLowerCase().includes(searchTerm);
-                return matchesInItem || matchesInTemplate;
+
+                // Check direction filter
+                if (directionFilter && direction !== directionFilter) {
+                    return false;
+                }
+
+                // Check work type filter
+                if (workTypeFilter && workType !== workTypeFilter) {
+                    return false;
+                }
+            }
+        } else {
+            // This is a task without operations - only filter by direction/workType should exclude operations
+            // Tasks themselves don't have direction/work type, so if these filters are active and this is not an operation, skip it
+            if (directionFilter || workTypeFilter) {
+                // We need to keep tasks that have matching operations
+                // This logic will be handled in displayTasksAndOperations
             }
         }
 
-        return matchesInItem;
+        // Search in all item fields
+        if (searchTerm) {
+            const matchesInItem = Object.values(item).some(value =>
+                value && value.toString().toLowerCase().includes(searchTerm)
+            );
+
+            // For operations, also search in template's Direction and Work Type
+            if (item['ОперацияID'] && item['Операция (шаблон)ID']) {
+                const templateId = item['Операция (шаблон)ID'];
+                const template = dictionaries.operationTemplates.find(t => t['Операция (шаблон)ID'] === templateId);
+                if (template) {
+                    const direction = template['Направление'] || '';
+                    const workType = template['Вид работ'] || '';
+                    const matchesInTemplate =
+                        direction.toLowerCase().includes(searchTerm) ||
+                        workType.toLowerCase().includes(searchTerm);
+                    if (!matchesInItem && !matchesInTemplate) {
+                        return false;
+                    }
+                } else if (!matchesInItem) {
+                    return false;
+                }
+            } else if (!matchesInItem) {
+                return false;
+            }
+        }
+
+        return true;
     });
 
     displayTasksAndOperations(filtered);
@@ -536,12 +579,95 @@ function loadProjectDetails(projectId) {
         .then(response => response.json())
         .then(data => {
             projectDetails = data;
+            populateFilterDropdowns(data);
             displayTasksAndOperations(data);
         })
         .catch(error => {
             console.error('Error loading project details:', error);
             alert('Ошибка загрузки задач проекта');
         });
+}
+
+/**
+ * Populate filter dropdowns with unique values from data
+ */
+function populateFilterDropdowns(data) {
+    // Extract unique directions from operation templates
+    const directionsSet = new Set();
+    const workTypesSet = new Set();
+    const projectStagesSet = new Set();
+
+    data.forEach(item => {
+        // Get project stage from item
+        const projectStage = item['Этап проекта'];
+        if (projectStage && projectStage.trim() !== '') {
+            projectStagesSet.add(projectStage);
+        }
+
+        // Get direction and work type from operation template
+        if (item['ОперацияID'] && item['Операция (шаблон)ID']) {
+            const templateId = item['Операция (шаблон)ID'];
+            const template = dictionaries.operationTemplates.find(t => t['Операция (шаблон)ID'] === templateId);
+            if (template) {
+                const direction = template['Направление'];
+                const workType = template['Вид работ'];
+                if (direction && direction.trim() !== '') {
+                    directionsSet.add(direction);
+                }
+                if (workType && workType.trim() !== '') {
+                    workTypesSet.add(workType);
+                }
+            }
+        }
+    });
+
+    // Populate direction filter
+    const directionFilter = document.getElementById('directionFilter');
+    if (directionFilter) {
+        // Clear existing options except the first one ("Все направления")
+        while (directionFilter.options.length > 1) {
+            directionFilter.remove(1);
+        }
+        // Add unique directions sorted alphabetically
+        Array.from(directionsSet).sort().forEach(direction => {
+            const option = document.createElement('option');
+            option.value = direction;
+            option.textContent = direction;
+            directionFilter.appendChild(option);
+        });
+    }
+
+    // Populate work type filter
+    const workTypeFilter = document.getElementById('workTypeFilter');
+    if (workTypeFilter) {
+        // Clear existing options except the first one ("Все виды работ")
+        while (workTypeFilter.options.length > 1) {
+            workTypeFilter.remove(1);
+        }
+        // Add unique work types sorted alphabetically
+        Array.from(workTypesSet).sort().forEach(workType => {
+            const option = document.createElement('option');
+            option.value = workType;
+            option.textContent = workType;
+            workTypeFilter.appendChild(option);
+        });
+    }
+
+    // Populate project stage filter
+    const projectStageFilter = document.getElementById('projectStageFilter');
+    if (projectStageFilter) {
+        // Clear existing options except the first one ("Все этапы")
+        while (projectStageFilter.options.length > 1) {
+            projectStageFilter.remove(1);
+        }
+        // Add unique project stages sorted alphabetically
+        Array.from(projectStagesSet).sort().forEach(projectStage => {
+            const option = document.createElement('option');
+            option.value = projectStage;
+            option.textContent = projectStage;
+            projectStageFilter.appendChild(option);
+        });
+    }
 }
 
 /**
@@ -669,7 +795,96 @@ function displayTasksAndOperations(data) {
     // Expand all operations when in delete mode
     if (deleteModeActive) {
         expandAllOperations();
+    } else {
+        // Auto-expand operations if filters are active
+        autoExpandFilteredOperations(taskGroups, sortedTaskIds);
     }
+}
+
+/**
+ * Auto-expand operations when filters match operations
+ */
+function autoExpandFilteredOperations(taskGroups, sortedTaskIds) {
+    const searchTerm = document.getElementById('taskSearch')?.value.toLowerCase() || '';
+    const directionFilter = document.getElementById('directionFilter')?.value || '';
+    const workTypeFilter = document.getElementById('workTypeFilter')?.value || '';
+    const projectStageFilter = document.getElementById('projectStageFilter')?.value || '';
+
+    // Only auto-expand if there are active filters
+    if (!searchTerm && !directionFilter && !workTypeFilter && !projectStageFilter) {
+        return;
+    }
+
+    sortedTaskIds.forEach(taskId => {
+        const group = taskGroups[taskId];
+        const task = group.task;
+        const operations = group.operations;
+
+        // Check if any operation in this task matches the filters
+        let hasMatchingOperation = false;
+        let taskMatchesSearch = false;
+
+        // Check if task itself matches the search
+        if (searchTerm) {
+            taskMatchesSearch = Object.values(task).some(value =>
+                value && value.toString().toLowerCase().includes(searchTerm)
+            );
+        }
+
+        // Check each operation
+        operations.forEach(op => {
+            if (op['ОперацияID']) {
+                const templateId = op['Операция (шаблон)ID'];
+                const template = templateId ? dictionaries.operationTemplates.find(t => t['Операция (шаблон)ID'] === templateId) : null;
+                const direction = template ? template['Направление'] : '';
+                const workType = template ? template['Вид работ'] : '';
+
+                let operationMatches = true;
+
+                // Check if operation matches filters
+                if (directionFilter && direction !== directionFilter) {
+                    operationMatches = false;
+                }
+                if (workTypeFilter && workType !== workTypeFilter) {
+                    operationMatches = false;
+                }
+
+                // Check if operation matches search
+                if (searchTerm && operationMatches) {
+                    const matchesInOp = Object.values(op).some(value =>
+                        value && value.toString().toLowerCase().includes(searchTerm)
+                    );
+                    const matchesInTemplate =
+                        direction.toLowerCase().includes(searchTerm) ||
+                        workType.toLowerCase().includes(searchTerm);
+
+                    if (matchesInOp || matchesInTemplate) {
+                        hasMatchingOperation = true;
+                    }
+                } else if (!searchTerm && operationMatches) {
+                    // No search term, but operation matches other filters
+                    hasMatchingOperation = true;
+                }
+            }
+        });
+
+        // Expand if:
+        // 1. There are matching operations found
+        // 2. OR (task matches search AND there are operations to show AND both match)
+        if (hasMatchingOperation || (taskMatchesSearch && operations.length > 0 && hasMatchingOperation)) {
+            // Auto-expand this task's operations
+            const operationElements = document.querySelectorAll(`.operation-item[data-task-id="${taskId}"]`);
+            const chevron = document.querySelector(`.task-item[data-task-id="${taskId}"] .chevron`);
+
+            operationElements.forEach(op => {
+                op.classList.remove('operations-hidden');
+            });
+
+            if (chevron) {
+                chevron.classList.add('expanded');
+            }
+        }
+    });
 }
 
 /**
