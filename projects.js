@@ -558,7 +558,7 @@ function displayTasksAndOperations(data) {
                 <div class="task-actions">
                     ${operationCountBubble}
                     <button class="btn btn-sm btn-primary" onclick="showAddOperationModal('${taskId}')">+ Операция</button>
-                    <button class="btn btn-sm btn-secondary" onclick="editTask('${taskId}')">Изм.</button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="editTask('${taskId}')">Изм.</button>
                 </div>
             </div>
         `;
@@ -580,7 +580,7 @@ function displayTasksAndOperations(data) {
                             ${op['Операция Кол-во'] ? '<br><small>Кол-во: ' + escapeHtml(op['Операция Кол-во']) + ' ' + escapeHtml(op['Операция Ед.изм.'] || '') + '</small>' : ''}
                         </div>
                         <div class="operation-actions">
-                            <button class="btn btn-sm btn-secondary" onclick="editOperation('${op['ОперацияID']}')">Изм.</button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="editOperation('${op['ОперацияID']}')">Изм.</button>
                         </div>
                     </div>
                 `;
@@ -1278,7 +1278,7 @@ document.getElementById('operationForm').addEventListener('submit', async functi
         // Show loading indicator
         const loadingIndicator = document.getElementById('operationLoadingIndicator');
         const saveBtn = document.getElementById('saveOperationBtn');
-        const cancelBtn = document.querySelector('#operationForm .btn-secondary');
+        const cancelBtn = document.querySelector('#operationForm .btn-outline-secondary');
 
         if (loadingIndicator) loadingIndicator.classList.remove('hidden');
         if (saveBtn) saveBtn.disabled = true;
@@ -1376,10 +1376,10 @@ function toggleDeleteMode() {
     if (deleteModeActive) {
         toggleBtn.textContent = 'Отменить режим удаления';
         toggleBtn.classList.remove('btn-warning');
-        toggleBtn.classList.add('btn-secondary');
+        toggleBtn.classList.add('btn-outline-secondary');
     } else {
         toggleBtn.textContent = 'Групповое удаление';
-        toggleBtn.classList.remove('btn-secondary');
+        toggleBtn.classList.remove('btn-outline-secondary');
         toggleBtn.classList.add('btn-warning');
         deleteBtn.classList.add('hidden');
     }
@@ -1467,7 +1467,7 @@ function confirmDelete() {
             deleteModeActive = false;
             const toggleBtn = document.getElementById('toggleDeleteModeBtn');
             toggleBtn.textContent = 'Групповое удаление';
-            toggleBtn.classList.remove('btn-secondary');
+            toggleBtn.classList.remove('btn-outline-secondary');
             toggleBtn.classList.add('btn-warning');
             document.getElementById('deleteSelectedBtn').classList.add('hidden');
 
