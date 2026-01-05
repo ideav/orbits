@@ -776,7 +776,7 @@ function displayTasksAndOperations(data) {
                 </div>
                 <div class="task-actions">
                     ${operationCountBubble}
-                    <button class="btn btn-sm btn-primary" onclick="showAddOperationModal('${taskId}')">+ Операция</button>
+                    <button class="btn btn-sm btn-primary" onclick="showAddOperationModal('${taskId}')">+&nbsp;Операция</button>
                     <button class="btn btn-sm btn-outline-secondary" onclick="editTask('${taskId}')">Изм.</button>
                 </div>
             </div>
