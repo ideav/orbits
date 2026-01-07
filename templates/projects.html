@@ -937,6 +937,32 @@
     </div>
 </div>
 
+<!-- Delete Estimate Confirmation Modal -->
+<div class="modal-backdrop" id="deleteEstimateModalBackdrop" onclick="closeDeleteEstimateModal()">
+    <div class="modal-dialog-custom" onclick="event.stopPropagation()">
+        <h5>Подтверждение удаления</h5>
+        <p>Вы уверены, что хотите удалить эту строку сметы?</p>
+
+        <div class="btn-group-custom">
+            <button type="button" class="btn btn-outline-secondary" onclick="closeDeleteEstimateModal()">Отмена</button>
+            <button type="button" class="btn btn-danger" onclick="confirmDeleteEstimate()">Удалить</button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Construction Confirmation Modal -->
+<div class="modal-backdrop" id="deleteConstructionModalBackdrop" onclick="closeDeleteConstructionModal()">
+    <div class="modal-dialog-custom" onclick="event.stopPropagation()">
+        <h5>Подтверждение удаления</h5>
+        <p>Вы уверены, что хотите удалить эту строку конструкции?</p>
+
+        <div class="btn-group-custom">
+            <button type="button" class="btn btn-outline-secondary" onclick="closeDeleteConstructionModal()">Отмена</button>
+            <button type="button" class="btn btn-danger" onclick="confirmDeleteConstruction()">Удалить</button>
+        </div>
+    </div>
+</div>
+
 <!-- Add Client Modal -->
 <div class="modal-backdrop" id="clientModalBackdrop" onclick="closeClientModal()">
     <div class="modal-dialog-custom" onclick="event.stopPropagation()">
