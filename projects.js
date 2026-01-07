@@ -1928,6 +1928,130 @@ function deleteItem(itemId) {
     });
 }
 
+// Global variable to store the ID of the item to be deleted
+let pendingDeleteEstimateId = null;
+let pendingDeleteConstructionId = null;
+
+/**
+ * Show delete estimate confirmation modal
+ */
+function showDeleteEstimateModal(estimateId) {
+    pendingDeleteEstimateId = estimateId;
+    document.getElementById('deleteEstimateModalBackdrop').classList.add('show');
+}
+
+/**
+ * Close delete estimate confirmation modal
+ */
+function closeDeleteEstimateModal() {
+    document.getElementById('deleteEstimateModalBackdrop').classList.remove('show');
+    pendingDeleteEstimateId = null;
+}
+
+/**
+ * Confirm and execute estimate deletion
+ */
+async function confirmDeleteEstimate() {
+    if (!pendingDeleteEstimateId) {
+        return;
+    }
+
+    const estimateId = pendingDeleteEstimateId;
+    closeDeleteEstimateModal();
+
+    // If this is a temporary row that hasn't been saved to DB yet, just remove it locally
+    if (estimateId.startsWith('temp_')) {
+        estimateData = estimateData.filter(e => e['СметаID'] !== estimateId);
+        displayEstimateData();
+        return;
+    }
+
+    try {
+        const formData = new FormData();
+
+        // Add XSRF token
+        formData.append('_xsrf', xsrf);
+
+        const response = await fetch(`https://${window.location.host}/${db}/_m_del/${estimateId}?JSON`, {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.ok || result.obj) {
+            // Remove from local data
+            estimateData = estimateData.filter(e => e['СметаID'] !== estimateId);
+            displayEstimateData();
+        } else {
+            alert('Ошибка при удалении строки');
+        }
+    } catch (error) {
+        console.error('Error deleting estimate row:', error);
+        alert('Ошибка при удалении строки');
+    }
+}
+
+/**
+ * Show delete construction confirmation modal
+ */
+function showDeleteConstructionModal(constructionId) {
+    pendingDeleteConstructionId = constructionId;
+    document.getElementById('deleteConstructionModalBackdrop').classList.add('show');
+}
+
+/**
+ * Close delete construction confirmation modal
+ */
+function closeDeleteConstructionModal() {
+    document.getElementById('deleteConstructionModalBackdrop').classList.remove('show');
+    pendingDeleteConstructionId = null;
+}
+
+/**
+ * Confirm and execute construction deletion
+ */
+async function confirmDeleteConstruction() {
+    if (!pendingDeleteConstructionId) {
+        return;
+    }
+
+    const constructionId = pendingDeleteConstructionId;
+    closeDeleteConstructionModal();
+
+    // If this is a temporary row that hasn't been saved to DB yet, just remove it locally
+    if (constructionId.startsWith('temp_')) {
+        constructionsData = constructionsData.filter(c => c['КонструкцияID'] !== constructionId);
+        displayConstructionsData();
+        return;
+    }
+
+    try {
+        const formData = new FormData();
+
+        // Add XSRF token
+        formData.append('_xsrf', xsrf);
+
+        const response = await fetch(`https://${window.location.host}/${db}/_m_del/${constructionId}?JSON`, {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.ok || result.obj) {
+            // Remove from local data
+            constructionsData = constructionsData.filter(c => c['КонструкцияID'] !== constructionId);
+            displayConstructionsData();
+        } else {
+            alert('Ошибка при удалении строки');
+        }
+    } catch (error) {
+        console.error('Error deleting construction row:', error);
+        alert('Ошибка при удалении строки');
+    }
+}
+
 /**
  * Confirm deletion of task from edit form
  */
@@ -2928,42 +3052,8 @@ function addEstimateRow() {
 /**
  * Delete estimate row
  */
-async function deleteEstimateRow(estimateId) {
-    if (!confirm('Удалить эту строку?')) {
-        return;
-    }
-
-    // If this is a temporary row that hasn't been saved to DB yet, just remove it locally
-    if (estimateId.startsWith('temp_')) {
-        estimateData = estimateData.filter(e => e['СметаID'] !== estimateId);
-        displayEstimateData();
-        return;
-    }
-
-    try {
-        const formData = new FormData();
-
-        // Add XSRF token
-        formData.append('_xsrf', xsrf);
-
-        const response = await fetch(`https://${window.location.host}/${db}/_m_del/${estimateId}?JSON`, {
-            method: 'POST',
-            body: formData
-        });
-
-        const result = await response.json();
-
-        if (result.ok || result.obj) {
-            // Remove from local data
-            estimateData = estimateData.filter(e => e['СметаID'] !== estimateId);
-            displayEstimateData();
-        } else {
-            alert('Ошибка при удалении строки');
-        }
-    } catch (error) {
-        console.error('Error deleting estimate row:', error);
-        alert('Ошибка при удалении строки');
-    }
+function deleteEstimateRow(estimateId) {
+    showDeleteEstimateModal(estimateId);
 }
 
 /**
@@ -3248,42 +3338,8 @@ function addConstructionRow() {
 /**
  * Delete construction row
  */
-async function deleteConstructionRow(constructionId) {
-    if (!confirm('Удалить эту строку?')) {
-        return;
-    }
-
-    // If this is a temporary row that hasn't been saved to DB yet, just remove it locally
-    if (constructionId.startsWith('temp_')) {
-        constructionsData = constructionsData.filter(c => c['КонструкцияID'] !== constructionId);
-        displayConstructionsData();
-        return;
-    }
-
-    try {
-        const formData = new FormData();
-
-        // Add XSRF token
-        formData.append('_xsrf', xsrf);
-
-        const response = await fetch(`https://${window.location.host}/${db}/_m_del/${constructionId}?JSON`, {
-            method: 'POST',
-            body: formData
-        });
-
-        const result = await response.json();
-
-        if (result.ok || result.obj) {
-            // Remove from local data
-            constructionsData = constructionsData.filter(c => c['КонструкцияID'] !== constructionId);
-            displayConstructionsData();
-        } else {
-            alert('Ошибка при удалении строки');
-        }
-    } catch (error) {
-        console.error('Error deleting construction row:', error);
-        alert('Ошибка при удалении строки');
-    }
+function deleteConstructionRow(constructionId) {
+    showDeleteConstructionModal(constructionId);
 }
 
 /**
