@@ -1323,16 +1323,18 @@ function editProject() {
         objectSelect.value = objectOption.value;
     }
 
-    // Set dates
-    if (selectedProject['Старт']) {
-        document.getElementById('projectStart').value = formatDateForInput(selectedProject['Старт']);
-    }
-    if (selectedProject['Срок']) {
-        document.getElementById('projectDeadline').value = formatDateForInput(selectedProject['Срок']);
-    }
+    // Set dates - always set/clear to avoid keeping old values
+    const startDate = selectedProject['Старт'] ? formatDateForInput(selectedProject['Старт']) : '';
+    const deadline = selectedProject['Срок'] ? formatDateForInput(selectedProject['Срок']) : '';
+
+    document.getElementById('projectStart').value = startDate;
+    document.getElementById('projectDeadline').value = deadline;
+
+    // Clear duration field first to avoid showing stale values
+    document.getElementById('projectDuration').value = '';
 
     // Calculate duration from start and end dates
-    if (selectedProject['Старт'] && selectedProject['Срок']) {
+    if (startDate && deadline) {
         calculateDurationFromEndDate();
     }
 
