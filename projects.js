@@ -3151,7 +3151,19 @@ function displayConstructionsData() {
     });
 
     if (validConstructions.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px; color: #6c757d;">Нет данных</td></tr>';
+        // When list is empty, create a temporary row for entering the first construction
+        const tempId = `temp_${Date.now()}`;
+        const emptyRow = {
+            'КонструкцияID': tempId,
+            'Конструкция': ''
+        };
+
+        // Add to constructionsData so it can be saved when user enters a name
+        constructionsData.push(emptyRow);
+
+        // Display the empty row
+        const row = createConstructionRow(emptyRow, 1);
+        tbody.appendChild(row);
         return;
     }
 
