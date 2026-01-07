@@ -648,6 +648,98 @@
         padding: 4px 8px;
         font-size: 12px;
     }
+
+    /* Constructions modal styles */
+    .constructions-modal-dialog {
+        max-width: 900px;
+        width: 90%;
+    }
+
+    .constructions-table-container {
+        overflow-x: auto;
+        max-height: 60vh;
+        margin-bottom: 20px;
+    }
+
+    .constructions-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+
+    .constructions-table thead {
+        position: sticky;
+        top: 0;
+        background-color: #f8f9fa;
+        z-index: 10;
+    }
+
+    .constructions-table th {
+        padding: 12px 8px;
+        text-align: left;
+        border-bottom: 2px solid #007bff;
+        font-weight: bold;
+        white-space: nowrap;
+    }
+
+    .constructions-table th:first-child {
+        width: 50px;
+        text-align: center;
+    }
+
+    .constructions-table th:nth-child(2) {
+        min-width: 300px;
+    }
+
+    .constructions-table th:last-child {
+        width: 100px;
+        text-align: center;
+    }
+
+    .constructions-table td {
+        padding: 8px;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .constructions-table tbody tr {
+        cursor: move;
+    }
+
+    .constructions-table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    .constructions-table tbody tr.dragging {
+        opacity: 0.5;
+        background-color: #e7f3ff;
+    }
+
+    .constructions-table input[type="text"] {
+        width: 100%;
+        padding: 6px 8px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .constructions-table .construction-row-number {
+        text-align: center;
+        font-weight: 500;
+        color: #6c757d;
+    }
+
+    .constructions-table .construction-actions {
+        text-align: center;
+    }
+
+    .constructions-add-row-btn {
+        margin-top: 10px;
+    }
+
+    .btn-delete-construction {
+        padding: 4px 8px;
+        font-size: 12px;
+    }
 </style>
 
 <div class="project-list-container">
@@ -679,7 +771,7 @@
             <button class="btn btn-primary btn-sm" onclick="showEstimateModal()">
                 Смета
             </button>
-            <button class="btn btn-primary btn-sm" onclick="showAddTaskModal()">
+            <button class="btn btn-primary btn-sm" onclick="showConstructionsModal()">
                 Конструкции
             </button>
 
@@ -1015,6 +1107,34 @@
 
         <div class="btn-group-custom">
             <button type="button" class="btn btn-outline-secondary" onclick="closeEstimateModal()">Закрыть</button>
+        </div>
+    </div>
+</div>
+
+<!-- Constructions Modal -->
+<div class="modal-backdrop" id="constructionsModalBackdrop" onclick="closeConstructionsModal()">
+    <div class="modal-dialog-custom constructions-modal-dialog" onclick="event.stopPropagation()">
+        <h5>Конструкции проекта: <span id="constructionsProjectName"></span></h5>
+
+        <div class="constructions-table-container">
+            <table class="constructions-table">
+                <thead>
+                    <tr>
+                        <th>№</th>
+                        <th>Конструкция</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody id="constructionsTableBody">
+                    <!-- Construction rows will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+
+        <button type="button" class="btn btn-primary constructions-add-row-btn" onclick="addConstructionRow()">+ Добавить строку</button>
+
+        <div class="btn-group-custom">
+            <button type="button" class="btn btn-outline-secondary" onclick="closeConstructionsModal()">Закрыть</button>
         </div>
     </div>
 </div>
