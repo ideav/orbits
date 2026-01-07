@@ -740,6 +740,19 @@
         padding: 4px 8px;
         font-size: 12px;
     }
+
+    /* Delete confirmation modals should appear above edit forms */
+    #deleteModalBackdrop,
+    #deleteEstimateModalBackdrop,
+    #deleteConstructionModalBackdrop {
+        z-index: 1060;
+    }
+
+    #deleteModalBackdrop .modal-dialog-custom,
+    #deleteEstimateModalBackdrop .modal-dialog-custom,
+    #deleteConstructionModalBackdrop .modal-dialog-custom {
+        z-index: 1070;
+    }
 </style>
 
 <div class="project-list-container">
