@@ -2044,3 +2044,555 @@ document.getElementById('cloneForm').addEventListener('submit', function(e) {
     });
 });
 
+/**
+ * SearchableSelect Component
+ * A reusable select2-style searchable dropdown component
+ */
+class SearchableSelect {
+    constructor(containerId, options = {}) {
+        this.containerId = containerId;
+        this.options = options;
+        this.data = options.data || [];
+        this.placeholder = options.placeholder || 'Выберите...';
+        this.allowAdd = options.allowAdd || false;
+        this.onSelect = options.onSelect || (() => {});
+        this.onAdd = options.onAdd || (() => {});
+        this.valueField = options.valueField || 'id';
+        this.labelField = options.labelField || 'name';
+        this.selectedValue = null;
+        this.selectedLabel = null;
+
+        this.render();
+        this.attachEvents();
+    }
+
+    render() {
+        const container = document.getElementById(this.containerId);
+        if (!container) return;
+
+        container.innerHTML = `
+            <div class="searchable-select-container">
+                <div class="searchable-select-trigger" tabindex="0">
+                    <span class="searchable-select-placeholder">${this.placeholder}</span>
+                    <span class="searchable-select-arrow">▼</span>
+                </div>
+                <div class="searchable-select-dropdown">
+                    <div class="searchable-select-search">
+                        <input type="text" placeholder="Поиск...">
+                    </div>
+                    <div class="searchable-select-options"></div>
+                </div>
+            </div>
+        `;
+
+        this.trigger = container.querySelector('.searchable-select-trigger');
+        this.dropdown = container.querySelector('.searchable-select-dropdown');
+        this.searchInput = container.querySelector('.searchable-select-search input');
+        this.optionsContainer = container.querySelector('.searchable-select-options');
+
+        this.renderOptions();
+    }
+
+    renderOptions(searchTerm = '') {
+        const filtered = this.data.filter(item => {
+            const label = item[this.labelField] || '';
+            return label.toLowerCase().includes(searchTerm.toLowerCase());
+        });
+
+        if (filtered.length === 0 && !this.allowAdd) {
+            this.optionsContainer.innerHTML = '<div class="searchable-select-option no-results">Ничего не найдено</div>';
+            return;
+        }
+
+        let html = '';
+        filtered.forEach(item => {
+            const value = item[this.valueField];
+            const label = item[this.labelField];
+            const isSelected = value === this.selectedValue ? 'selected' : '';
+            const highlightedLabel = this.highlightMatch(label, searchTerm);
+            html += `<div class="searchable-select-option ${isSelected}" data-value="${value}">${highlightedLabel}</div>`;
+        });
+
+        // Add "Add new" option if allowed and search term exists
+        if (this.allowAdd && searchTerm.trim()) {
+            const exists = this.data.some(item =>
+                item[this.labelField].toLowerCase() === searchTerm.toLowerCase()
+            );
+            if (!exists) {
+                const capitalizedTerm = this.capitalize(searchTerm.trim());
+                html += `<div class="searchable-select-option add-new" data-add-value="${capitalizedTerm}">+ Добавить "${capitalizedTerm}"</div>`;
+            }
+        }
+
+        this.optionsContainer.innerHTML = html;
+    }
+
+    highlightMatch(text, searchTerm) {
+        if (!searchTerm) return text;
+        const regex = new RegExp(`(${searchTerm})`, 'gi');
+        return text.replace(regex, '<em>$1</em>');
+    }
+
+    capitalize(str) {
+        return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    attachEvents() {
+        // Toggle dropdown
+        this.trigger.addEventListener('click', () => this.toggle());
+
+        // Search input
+        this.searchInput.addEventListener('input', (e) => {
+            this.renderOptions(e.target.value);
+        });
+
+        // Option selection
+        this.optionsContainer.addEventListener('click', (e) => {
+            const option = e.target.closest('.searchable-select-option');
+            if (!option || option.classList.contains('no-results')) return;
+
+            if (option.classList.contains('add-new')) {
+                const newValue = option.dataset.addValue;
+                this.handleAdd(newValue);
+            } else {
+                const value = option.dataset.value;
+                this.select(value);
+            }
+        });
+
+        // Close on outside click
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest(`#${this.containerId}`)) {
+                this.close();
+            }
+        });
+
+        // Close on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.dropdown.classList.contains('active')) {
+                this.close();
+            }
+        });
+    }
+
+    toggle() {
+        if (this.dropdown.classList.contains('active')) {
+            this.close();
+        } else {
+            this.open();
+        }
+    }
+
+    open() {
+        this.dropdown.classList.add('active');
+        this.trigger.classList.add('active');
+        this.searchInput.value = '';
+        this.searchInput.focus();
+        this.renderOptions();
+    }
+
+    close() {
+        this.dropdown.classList.remove('active');
+        this.trigger.classList.remove('active');
+    }
+
+    select(value) {
+        const item = this.data.find(i => i[this.valueField] == value);
+        if (item) {
+            this.selectedValue = value;
+            this.selectedLabel = item[this.labelField];
+            const placeholderSpan = this.trigger.querySelector('.searchable-select-placeholder');
+            placeholderSpan.textContent = this.selectedLabel;
+            placeholderSpan.style.color = '#000';
+            this.onSelect(value, item);
+        }
+        this.close();
+    }
+
+    async handleAdd(newValue) {
+        try {
+            const result = await this.onAdd(newValue);
+            if (result && result.id) {
+                // Add to data
+                const newItem = {};
+                newItem[this.valueField] = result.id;
+                newItem[this.labelField] = newValue;
+                this.data.unshift(newItem);
+
+                // Select the new item
+                this.select(result.id);
+            }
+        } catch (error) {
+            console.error('Error adding new item:', error);
+        }
+    }
+
+    updateData(newData) {
+        this.data = newData;
+        this.renderOptions();
+    }
+
+    getValue() {
+        return this.selectedValue;
+    }
+
+    reset() {
+        this.selectedValue = null;
+        this.selectedLabel = null;
+        const placeholderSpan = this.trigger.querySelector('.searchable-select-placeholder');
+        placeholderSpan.textContent = this.placeholder;
+        placeholderSpan.style.color = '';
+    }
+}
+
+/**
+ * Global variables for cities and regions data
+ */
+let citiesData = [];
+let regionsData = [];
+let regionSelectInstance = null;
+let citySelectInstance = null;
+
+/**
+ * Load cities and regions data from API
+ */
+function loadCitiesAndRegions() {
+    return fetch(`https://${window.location.host}/${db}/report/6603?JSON_KV`)
+        .then(response => response.json())
+        .then(data => {
+            citiesData = data;
+
+            // Extract unique regions
+            const regionsSet = new Set();
+            const regionsMap = new Map();
+
+            data.forEach(item => {
+                const regionName = item['Область'];
+                const regionId = item['ОбластьID'];
+                if (regionName && regionId && !regionsMap.has(regionId)) {
+                    regionsMap.set(regionId, regionName);
+                    regionsSet.add(JSON.stringify({ id: regionId, name: regionName }));
+                }
+            });
+
+            regionsData = Array.from(regionsSet).map(str => JSON.parse(str));
+
+            console.log('Cities and regions loaded:', { cities: citiesData.length, regions: regionsData.length });
+        })
+        .catch(error => {
+            console.error('Error loading cities and regions:', error);
+        });
+}
+
+/**
+ * Show add client modal
+ */
+function showAddClientModal() {
+    document.getElementById('clientForm').reset();
+    document.getElementById('clientModalBackdrop').classList.add('show');
+}
+
+/**
+ * Close client modal
+ */
+function closeClientModal() {
+    document.getElementById('clientModalBackdrop').classList.remove('show');
+}
+
+/**
+ * Show add object modal
+ */
+function showAddObjectModal() {
+    document.getElementById('objectForm').reset();
+
+    // Initialize region select
+    regionSelectInstance = new SearchableSelect('regionSelectContainer', {
+        data: regionsData,
+        placeholder: 'Выберите область',
+        allowAdd: true,
+        valueField: 'id',
+        labelField: 'name',
+        onSelect: (value, item) => {
+            console.log('Region selected:', value, item);
+            // Update city select to show only cities from selected region
+            updateCitySelect(value);
+        },
+        onAdd: async (newRegionName) => {
+            console.log('Adding new region:', newRegionName);
+            return await createNewRegion(newRegionName);
+        }
+    });
+
+    // Initialize city select
+    citySelectInstance = new SearchableSelect('citySelectContainer', {
+        data: [],
+        placeholder: 'Сначала выберите область',
+        allowAdd: true,
+        valueField: 'id',
+        labelField: 'name',
+        onAdd: async (newCityName) => {
+            console.log('Adding new city:', newCityName);
+            const regionId = regionSelectInstance.getValue();
+            return await createNewCity(newCityName, regionId);
+        }
+    });
+
+    document.getElementById('objectModalBackdrop').classList.add('show');
+}
+
+/**
+ * Close object modal
+ */
+function closeObjectModal() {
+    document.getElementById('objectModalBackdrop').classList.remove('show');
+}
+
+/**
+ * Update city select based on selected region
+ */
+function updateCitySelect(regionId) {
+    if (!citySelectInstance) return;
+
+    const filteredCities = citiesData
+        .filter(item => item['ОбластьID'] == regionId)
+        .map(item => ({
+            id: item['ГородID'],
+            name: item['Город']
+        }));
+
+    citySelectInstance.updateData(filteredCities);
+    citySelectInstance.reset();
+
+    // Update placeholder
+    const placeholderSpan = citySelectInstance.trigger.querySelector('.searchable-select-placeholder');
+    placeholderSpan.textContent = filteredCities.length > 0 ? 'Выберите город' : 'Нет городов в этой области';
+}
+
+/**
+ * Create new client
+ */
+async function createNewClient(clientName) {
+    const formData = new FormData();
+    formData.append('_xsrf', xsrf);
+    formData.append('t665', clientName);
+
+    const url = `https://${window.location.host}/${db}/_m_new/665?JSON&up=1`;
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        console.log('Client created:', data);
+        return data;
+    } catch (error) {
+        console.error('Error creating client:', error);
+        throw error;
+    }
+}
+
+/**
+ * Create new region
+ */
+async function createNewRegion(regionName) {
+    const formData = new FormData();
+    formData.append('_xsrf', xsrf);
+    formData.append('t6581', regionName);
+
+    const url = `https://${window.location.host}/${db}/_m_new/6581?JSON&up=1`;
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        console.log('Region created:', data);
+
+        // Add to regionsData
+        if (data.obj) {
+            regionsData.unshift({ id: data.obj, name: regionName });
+        }
+
+        return data;
+    } catch (error) {
+        console.error('Error creating region:', error);
+        throw error;
+    }
+}
+
+/**
+ * Create new city
+ */
+async function createNewCity(cityName, regionId) {
+    const formData = new FormData();
+    formData.append('_xsrf', xsrf);
+    formData.append('t6584', cityName);
+    if (regionId) {
+        formData.append('t6598', regionId);
+    }
+
+    const url = `https://${window.location.host}/${db}/_m_new/6584?JSON&up=1`;
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        console.log('City created:', data);
+
+        // Add to citiesData
+        if (data.obj) {
+            const regionName = regionsData.find(r => r.id == regionId)?.name || '';
+            citiesData.unshift({
+                'ГородID': data.obj,
+                'Город': cityName,
+                'ОбластьID': regionId,
+                'Область': regionName
+            });
+        }
+
+        return data;
+    } catch (error) {
+        console.error('Error creating city:', error);
+        throw error;
+    }
+}
+
+/**
+ * Create new object
+ */
+async function createNewObject(objectName, regionId, cityId, address, coordinates) {
+    const formData = new FormData();
+    formData.append('_xsrf', xsrf);
+    formData.append('t715', objectName);
+    if (regionId) {
+        formData.append('t6583', regionId);
+    }
+    if (cityId) {
+        formData.append('t6586', cityId);
+    }
+    if (address) {
+        formData.append('t718', address);
+    }
+    // Note: Coordinates field mapping not specified in issue, skipping for now
+
+    const url = `https://${window.location.host}/${db}/_m_new/715?JSON&up=1`;
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        console.log('Object created:', data);
+        return data;
+    } catch (error) {
+        console.error('Error creating object:', error);
+        throw error;
+    }
+}
+
+/**
+ * Handle client form submission
+ */
+document.getElementById('clientForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const clientName = document.getElementById('clientName').value.trim();
+    if (!clientName) {
+        alert('Введите название заказчика');
+        return;
+    }
+
+    try {
+        const result = await createNewClient(clientName);
+
+        if (result.obj) {
+            // Add to clients dictionary and dropdown
+            const newClient = {
+                'ЗаказчикID': result.obj,
+                'Заказчик': clientName
+            };
+            dictionaries.clients.unshift(newClient);
+
+            // Update the select dropdown
+            const select = document.getElementById('projectClient');
+            const option = document.createElement('option');
+            option.value = result.obj;
+            option.textContent = clientName;
+            select.insertBefore(option, select.options[1]); // Insert after placeholder
+
+            // Select the new client
+            select.value = result.obj;
+
+            closeClientModal();
+            alert('Заказчик успешно создан');
+        } else {
+            alert('Ошибка при создании заказчика');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Ошибка при создании заказчика');
+    }
+});
+
+/**
+ * Handle object form submission
+ */
+document.getElementById('objectForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const objectName = document.getElementById('objectName').value.trim();
+    const coordinates = document.getElementById('objectCoordinates').value.trim();
+    const address = document.getElementById('objectAddress').value.trim();
+    const regionId = regionSelectInstance ? regionSelectInstance.getValue() : null;
+    const cityId = citySelectInstance ? citySelectInstance.getValue() : null;
+
+    if (!objectName) {
+        alert('Введите название объекта');
+        return;
+    }
+
+    try {
+        const result = await createNewObject(objectName, regionId, cityId, address, coordinates);
+
+        if (result.obj) {
+            // Get region and city names
+            const regionName = regionId ? (regionsData.find(r => r.id == regionId)?.name || '') : '';
+            const cityItem = cityId ? citiesData.find(c => c['ГородID'] == cityId) : null;
+            const cityName = cityItem ? cityItem['Город'] : '';
+
+            // Add to objects dictionary and dropdown
+            const newObject = {
+                'Объект ID': result.obj,
+                'Объект': objectName
+            };
+            dictionaries.objects.unshift(newObject);
+
+            // Update the select dropdown
+            const select = document.getElementById('projectObject');
+            const option = document.createElement('option');
+            option.value = result.obj;
+            option.textContent = objectName;
+            select.insertBefore(option, select.options[1]); // Insert after placeholder
+
+            // Select the new object
+            select.value = result.obj;
+
+            closeObjectModal();
+            alert('Объект успешно создан');
+        } else {
+            alert('Ошибка при создании объекта');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Ошибка при создании объекта');
+    }
+});
+
+// Load cities and regions data when page loads
+loadCitiesAndRegions();
+
