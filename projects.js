@@ -2984,3 +2984,416 @@ function updateEstimateTotalSum() {
     }
 }
 
+// ============================================================================
+// CONSTRUCTIONS MODAL MANAGEMENT
+// ============================================================================
+
+// Store constructions data
+let constructionsData = [];
+
+// Drag and drop state for constructions
+let draggedConstructionElement = null;
+
+/**
+ * Show constructions modal and load constructions data
+ */
+async function showConstructionsModal() {
+    if (!selectedProject) {
+        alert('Выберите проект');
+        return;
+    }
+
+    // Set project name in modal
+    document.getElementById('constructionsProjectName').textContent = selectedProject['Проект'] || '';
+
+    // Show modal
+    document.getElementById('constructionsModalBackdrop').classList.add('show');
+
+    // Load constructions data
+    await loadConstructionsData();
+}
+
+/**
+ * Close constructions modal
+ */
+function closeConstructionsModal() {
+    document.getElementById('constructionsModalBackdrop').classList.remove('show');
+    constructionsData = [];
+}
+
+/**
+ * Load constructions data for current project
+ */
+async function loadConstructionsData() {
+    if (!selectedProject) return;
+
+    const projectId = selectedProject['ПроектID'];
+
+    try {
+        const response = await fetch(`https://${window.location.host}/${db}/report/6665?JSON_KV&FR_ProjectID=${projectId}`);
+        const data = await response.json();
+
+        constructionsData = data || [];
+        displayConstructionsData();
+    } catch (error) {
+        console.error('Error loading constructions data:', error);
+        alert('Ошибка загрузки конструкций');
+    }
+}
+
+/**
+ * Display constructions data in table
+ */
+function displayConstructionsData() {
+    const tbody = document.getElementById('constructionsTableBody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    if (constructionsData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px; color: #6c757d;">Нет данных</td></tr>';
+        return;
+    }
+
+    // Sort by order
+    constructionsData.sort((a, b) => {
+        const orderA = parseInt(a['КонструкцияOrder'] || 0);
+        const orderB = parseInt(b['КонструкцияOrder'] || 0);
+        return orderA - orderB;
+    });
+
+    constructionsData.forEach((item, index) => {
+        const row = createConstructionRow(item, index + 1);
+        tbody.appendChild(row);
+    });
+
+    // Setup drag and drop for all rows
+    setupConstructionsDragDrop();
+}
+
+/**
+ * Create construction row element
+ */
+function createConstructionRow(item, rowNumber) {
+    const tr = document.createElement('tr');
+    tr.dataset.constructionId = item['КонструкцияID'] || '';
+    tr.draggable = true;
+
+    tr.innerHTML = `
+        <td class="construction-row-number">${rowNumber}</td>
+        <td>
+            <input type="text" value="${escapeHtml(item['Конструкция'] || '')}"
+                   onchange="updateConstructionField('${item['КонструкцияID']}', 'Конструкция', this.value)">
+        </td>
+        <td class="construction-actions">
+            <button class="btn btn-sm btn-danger btn-delete-construction" onclick="deleteConstructionRow('${item['КонструкцияID']}')">Удалить</button>
+        </td>
+    `;
+
+    return tr;
+}
+
+/**
+ * Update construction field value
+ */
+async function updateConstructionField(constructionId, fieldName, value) {
+    const item = constructionsData.find(c => c['КонструкцияID'] === constructionId);
+    if (!item) return;
+
+    // Update local data
+    item[fieldName] = value;
+
+    // If this is a new unsaved row (has temp ID starting with 'temp_')
+    if (constructionId.startsWith('temp_')) {
+        // Only create row in DB when construction name field is edited
+        if (fieldName === 'Конструкция' && value.trim() !== '') {
+            await createConstructionRowInDB(constructionId, item);
+        }
+        // For other fields, just update local data without saving
+        return;
+    }
+
+    // Save to server for existing rows
+    await saveConstructionRow(constructionId);
+}
+
+/**
+ * Create construction row in database
+ */
+async function createConstructionRowInDB(tempId, item) {
+    if (!selectedProject) return;
+
+    const projectId = selectedProject['ПроектID'];
+
+    try {
+        const formData = new FormData();
+
+        // Add XSRF token
+        formData.append('_xsrf', xsrf);
+
+        // Add construction name field: t6132
+        formData.append('t6132', item['Конструкция'] || '');
+
+        const response = await fetch(`https://${window.location.host}/${db}/_m_new/6132?JSON&up=${projectId}`, {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.obj) {
+            // Get the real ID from the response
+            const realId = result.obj;
+
+            // Update the temp ID to the real ID in constructionsData
+            const itemIndex = constructionsData.findIndex(c => c['КонструкцияID'] === tempId);
+            if (itemIndex !== -1) {
+                constructionsData[itemIndex]['КонструкцияID'] = realId;
+            }
+
+            // Reload constructions data to ensure we're in sync with server
+            await loadConstructionsData();
+        } else {
+            alert('Ошибка при создании строки');
+        }
+    } catch (error) {
+        console.error('Error creating construction row in DB:', error);
+        alert('Ошибка при создании строки');
+    }
+}
+
+/**
+ * Save construction row to server
+ */
+async function saveConstructionRow(constructionId) {
+    const item = constructionsData.find(c => c['КонструкцияID'] === constructionId);
+    if (!item) return;
+
+    try {
+        const formData = new FormData();
+
+        // Add XSRF token
+        formData.append('_xsrf', xsrf);
+
+        // Add construction name field: t6132
+        formData.append('t6132', item['Конструкция'] || '');
+
+        const response = await fetch(`https://${window.location.host}/${db}/_m_save/${constructionId}?JSON`, {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (!result.ok && !result.obj) {
+            alert('Ошибка при сохранении строки');
+        }
+    } catch (error) {
+        console.error('Error saving construction row:', error);
+        alert('Ошибка при сохранении строки');
+    }
+}
+
+/**
+ * Add new construction row
+ * Creates empty row in UI only, DB save happens when Construction Name is edited
+ */
+function addConstructionRow() {
+    if (!selectedProject) return;
+
+    // Create a temporary row with a unique temp ID
+    const tempId = `temp_${Date.now()}`;
+    const newRow = {
+        'КонструкцияID': tempId,
+        'Конструкция': ''
+    };
+
+    // Add to local data
+    constructionsData.push(newRow);
+
+    // Re-render the table
+    displayConstructionsData();
+}
+
+/**
+ * Delete construction row
+ */
+async function deleteConstructionRow(constructionId) {
+    if (!confirm('Удалить эту строку?')) {
+        return;
+    }
+
+    // If this is a temporary row that hasn't been saved to DB yet, just remove it locally
+    if (constructionId.startsWith('temp_')) {
+        constructionsData = constructionsData.filter(c => c['КонструкцияID'] !== constructionId);
+        displayConstructionsData();
+        return;
+    }
+
+    try {
+        const formData = new FormData();
+
+        // Add XSRF token
+        formData.append('_xsrf', xsrf);
+
+        const response = await fetch(`https://${window.location.host}/${db}/_m_del/${constructionId}?JSON`, {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.ok || result.obj) {
+            // Remove from local data
+            constructionsData = constructionsData.filter(c => c['КонструкцияID'] !== constructionId);
+            displayConstructionsData();
+        } else {
+            alert('Ошибка при удалении строки');
+        }
+    } catch (error) {
+        console.error('Error deleting construction row:', error);
+        alert('Ошибка при удалении строки');
+    }
+}
+
+/**
+ * Setup drag and drop for constructions table
+ */
+function setupConstructionsDragDrop() {
+    const rows = document.querySelectorAll('#constructionsTableBody tr');
+
+    rows.forEach(row => {
+        row.addEventListener('dragstart', handleConstructionDragStart);
+        row.addEventListener('dragover', handleConstructionDragOver);
+        row.addEventListener('drop', handleConstructionDrop);
+        row.addEventListener('dragend', handleConstructionDragEnd);
+    });
+}
+
+/**
+ * Handle drag start for construction row
+ */
+function handleConstructionDragStart(e) {
+    draggedConstructionElement = this;
+    this.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+
+    const id = this.dataset.constructionId;
+    console.log(`[CONSTRUCTION_DRAG] Start: Construction ID=${id}`);
+}
+
+/**
+ * Handle drag over for construction row
+ */
+function handleConstructionDragOver(e) {
+    if (e.preventDefault) {
+        e.preventDefault();
+    }
+    e.dataTransfer.dropEffect = 'move';
+    return false;
+}
+
+/**
+ * Handle drop for construction row
+ */
+function handleConstructionDrop(e) {
+    if (e.stopPropagation) {
+        e.stopPropagation();
+    }
+
+    console.log('[CONSTRUCTION_DRAG] Drop event triggered');
+
+    if (draggedConstructionElement !== this) {
+        const draggedId = draggedConstructionElement.dataset.constructionId;
+        const dropTargetId = this.dataset.constructionId;
+
+        console.log(`[CONSTRUCTION_DRAG] Valid drop: Moving Construction ID=${draggedId} near Construction ID=${dropTargetId}`);
+
+        // Get the bounding rectangle of the drop target
+        const rect = this.getBoundingClientRect();
+        const midpoint = rect.top + rect.height / 2;
+
+        // Insert before or after based on mouse position
+        const insertBefore = e.clientY < midpoint;
+        console.log(`[CONSTRUCTION_DRAG] Insert position: ${insertBefore ? 'before' : 'after'} drop target`);
+
+        if (insertBefore) {
+            this.parentNode.insertBefore(draggedConstructionElement, this);
+        } else {
+            this.parentNode.insertBefore(draggedConstructionElement, this.nextSibling);
+        }
+
+        console.log('[CONSTRUCTION_DRAG] Element moved in DOM, calling saveConstructionOrder()');
+        // Save new order
+        saveConstructionOrder(draggedConstructionElement);
+    } else {
+        console.log('[CONSTRUCTION_DRAG] Drop ignored: Element dropped on itself');
+    }
+
+    return false;
+}
+
+/**
+ * Handle drag end for construction row
+ */
+function handleConstructionDragEnd(e) {
+    this.classList.remove('dragging');
+
+    const id = this.dataset.constructionId;
+    console.log(`[CONSTRUCTION_DRAG] End: Construction ID=${id}`);
+}
+
+/**
+ * Save new order after drag and drop for construction
+ * Only saves the dragged element's new order position.
+ * The backend will recalculate the order for all other elements.
+ */
+async function saveConstructionOrder(element) {
+    console.log('[CONSTRUCTION_SAVE_ORDER] Function called');
+
+    const constructionId = element.dataset.constructionId;
+    console.log(`[CONSTRUCTION_SAVE_ORDER] Construction ID: ${constructionId}`);
+
+    // Skip saving order for temporary rows
+    if (constructionId.startsWith('temp_')) {
+        console.log('[CONSTRUCTION_SAVE_ORDER] Skipping order save for temporary row');
+        return;
+    }
+
+    // Get all siblings to calculate the new order position
+    const tbody = element.parentNode;
+    const allRows = Array.from(tbody.querySelectorAll('tr'));
+    const newOrderPosition = allRows.indexOf(element) + 1;
+
+    console.log(`[CONSTRUCTION_SAVE_ORDER] New order position: ${newOrderPosition}`);
+
+    try {
+        const formData = new FormData();
+
+        // Add XSRF token
+        formData.append('_xsrf', xsrf);
+
+        // Add order parameter
+        formData.append('order', newOrderPosition);
+
+        const response = await fetch(`https://${window.location.host}/${db}/_m_ord/${constructionId}?JSON`, {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.ok || result.obj) {
+            console.log('[CONSTRUCTION_SAVE_ORDER] Order saved successfully');
+            // Reload data to sync with server
+            await loadConstructionsData();
+        } else {
+            console.error('[CONSTRUCTION_SAVE_ORDER] Failed to save order:', result);
+            alert('Ошибка при сохранении порядка');
+        }
+    } catch (error) {
+        console.error('[CONSTRUCTION_SAVE_ORDER] Error saving order:', error);
+        alert('Ошибка при сохранении порядка');
+    }
+}
+
