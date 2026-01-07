@@ -2757,7 +2757,17 @@ async function updateEstimateField(estimateId, fieldName, value) {
         displayEstimateData();
     }
 
-    // Save to server
+    // If this is a new unsaved row (has temp ID starting with 'temp_')
+    if (estimateId.startsWith('temp_')) {
+        // Only create row in DB when "Смета" (Work Name) field is edited
+        if (fieldName === 'Смета' && value.trim() !== '') {
+            await createEstimateRowInDB(estimateId, item);
+        }
+        // For other fields, just update local data without saving
+        return;
+    }
+
+    // Save to server for existing rows
     await saveEstimateRow(estimateId);
 }
 
@@ -2771,6 +2781,9 @@ async function saveEstimateRow(estimateId) {
     try {
         // Build form data according to metadata
         const formData = new FormData();
+
+        // Add XSRF token
+        formData.append('_xsrf', xsrf);
 
         // Add fields from metadata
         if (estimateMetadata.reqs) {
@@ -2802,9 +2815,9 @@ async function saveEstimateRow(estimateId) {
 }
 
 /**
- * Add new estimate row
+ * Create estimate row in database (for new unsaved rows)
  */
-async function addEstimateRow() {
+async function createEstimateRowInDB(tempId, item) {
     if (!selectedProject || !estimateMetadata) return;
 
     const projectId = selectedProject['ПроектID'];
@@ -2812,12 +2825,18 @@ async function addEstimateRow() {
     try {
         const formData = new FormData();
 
-        // Set default empty values for all fields
-        formData.append(`t${estimateMetadata.id}`, 'Новая работа');
+        // Add XSRF token
+        formData.append('_xsrf', xsrf);
 
+        // Set the main field (Смета / Work Name)
+        formData.append(`t${estimateMetadata.id}`, item['Смета'] || '');
+
+        // Add other fields from metadata
         if (estimateMetadata.reqs) {
             estimateMetadata.reqs.forEach(req => {
-                formData.append(`t${req.id}`, '');
+                const fieldName = req.val;
+                const value = item[fieldName] || '';
+                formData.append(`t${req.id}`, value);
             });
         }
 
@@ -2829,15 +2848,57 @@ async function addEstimateRow() {
         const result = await response.json();
 
         if (result.obj) {
-            // Reload estimate data
+            // Get the real ID from the response
+            const realId = result.obj;
+
+            // Update the temp ID to the real ID in estimateData
+            const itemIndex = estimateData.findIndex(e => e['СметаID'] === tempId);
+            if (itemIndex !== -1) {
+                estimateData[itemIndex]['СметаID'] = realId;
+            }
+
+            // Reload estimate data to ensure we're in sync with server
             await loadEstimateData();
         } else {
-            alert('Ошибка при добавлении строки');
+            alert('Ошибка при создании строки');
         }
     } catch (error) {
-        console.error('Error adding estimate row:', error);
-        alert('Ошибка при добавлении строки');
+        console.error('Error creating estimate row in DB:', error);
+        alert('Ошибка при создании строки');
     }
+}
+
+/**
+ * Add new estimate row
+ * Creates empty row in UI only, DB save happens when Work Name is edited
+ */
+function addEstimateRow() {
+    if (!selectedProject || !estimateMetadata) return;
+
+    // Create a temporary row with a unique temp ID
+    const tempId = `temp_${Date.now()}`;
+    const newRow = {
+        'СметаID': tempId,
+        'Смета': '',
+        'К-во': '',
+        'Цена за ед.': '',
+        'Ед.изм.': ''
+    };
+
+    // Add any metadata required fields with empty values
+    if (estimateMetadata.reqs) {
+        estimateMetadata.reqs.forEach(req => {
+            if (!newRow[req.val]) {
+                newRow[req.val] = '';
+            }
+        });
+    }
+
+    // Add to local data
+    estimateData.push(newRow);
+
+    // Re-render the table
+    displayEstimateData();
 }
 
 /**
@@ -2848,9 +2909,22 @@ async function deleteEstimateRow(estimateId) {
         return;
     }
 
+    // If this is a temporary row that hasn't been saved to DB yet, just remove it locally
+    if (estimateId.startsWith('temp_')) {
+        estimateData = estimateData.filter(e => e['СметаID'] !== estimateId);
+        displayEstimateData();
+        return;
+    }
+
     try {
+        const formData = new FormData();
+
+        // Add XSRF token
+        formData.append('_xsrf', xsrf);
+
         const response = await fetch(`https://${window.location.host}/${db}/_m_del/${estimateId}?JSON`, {
-            method: 'POST'
+            method: 'POST',
+            body: formData
         });
 
         const result = await response.json();
