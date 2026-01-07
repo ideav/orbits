@@ -378,6 +378,152 @@
     .operations-hidden {
         display: none;
     }
+
+    /* SearchableSelect component styles */
+    .searchable-select-container {
+        position: relative;
+        width: 100%;
+    }
+
+    .searchable-select-trigger {
+        width: 100%;
+        padding: 8px 30px 8px 8px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        background-color: white;
+        cursor: pointer;
+        text-align: left;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .searchable-select-trigger:hover {
+        border-color: #80bdff;
+    }
+
+    .searchable-select-trigger.active {
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    }
+
+    .searchable-select-placeholder {
+        color: #6c757d;
+    }
+
+    .searchable-select-arrow {
+        font-size: 10px;
+        color: #6c757d;
+        transition: transform 0.2s;
+    }
+
+    .searchable-select-trigger.active .searchable-select-arrow {
+        transform: rotate(180deg);
+    }
+
+    .searchable-select-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        margin-top: 2px;
+        max-height: 300px;
+        overflow-y: auto;
+        z-index: 1000;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        display: none;
+    }
+
+    .searchable-select-dropdown.active {
+        display: block;
+    }
+
+    .searchable-select-search {
+        position: sticky;
+        top: 0;
+        background: white;
+        padding: 8px;
+        border-bottom: 1px solid #ced4da;
+    }
+
+    .searchable-select-search input {
+        width: 100%;
+        padding: 6px 8px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .searchable-select-options {
+        max-height: 250px;
+        overflow-y: auto;
+    }
+
+    .searchable-select-option {
+        padding: 8px 12px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    .searchable-select-option:hover {
+        background-color: #f8f9fa;
+    }
+
+    .searchable-select-option.selected {
+        background-color: #e7f3ff;
+        font-weight: 500;
+    }
+
+    .searchable-select-option.add-new {
+        color: #007bff;
+        font-weight: 500;
+        border-top: 1px solid #dee2e6;
+    }
+
+    .searchable-select-option.add-new:hover {
+        background-color: #e7f3ff;
+    }
+
+    .searchable-select-option em {
+        background-color: #fff3cd;
+        font-style: normal;
+        font-weight: 600;
+    }
+
+    .searchable-select-option.no-results {
+        color: #6c757d;
+        cursor: default;
+        text-align: center;
+        padding: 12px;
+    }
+
+    .searchable-select-option.no-results:hover {
+        background-color: white;
+    }
+
+    /* Button with icon styles */
+    .btn-icon {
+        padding: 6px 10px;
+        margin-left: 8px;
+    }
+
+    .form-group-with-button {
+        display: flex;
+        align-items: flex-end;
+        gap: 0;
+    }
+
+    .form-group-with-button > div:first-child {
+        flex: 1;
+    }
+
+    .form-group-with-button .form-group {
+        margin-bottom: 0;
+    }
 </style>
 
 <div class="project-list-container">
@@ -451,18 +597,24 @@
                 <textarea class="form-control-custom" id="projectDescription"></textarea>
             </div>
 
-            <div class="form-group">
-                <label for="projectClient">Заказчик</label>
-                <select class="form-control-custom" id="projectClient">
-                    <option value="">Выберите заказчика</option>
-                </select>
+            <div class="form-group-with-button">
+                <div class="form-group">
+                    <label for="projectClient">Заказчик</label>
+                    <select class="form-control-custom" id="projectClient">
+                        <option value="">Выберите заказчика</option>
+                    </select>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary btn-icon" onclick="showAddClientModal()" title="Добавить нового заказчика">+</button>
             </div>
 
-            <div class="form-group">
-                <label for="projectObject">Объект</label>
-                <select class="form-control-custom" id="projectObject">
-                    <option value="">Выберите объект</option>
-                </select>
+            <div class="form-group-with-button">
+                <div class="form-group">
+                    <label for="projectObject">Объект</label>
+                    <select class="form-control-custom" id="projectObject">
+                        <option value="">Выберите объект</option>
+                    </select>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary btn-icon" onclick="showAddObjectModal()" title="Добавить новый объект">+</button>
             </div>
 
             <div class="form-group">
@@ -563,6 +715,62 @@
             <button type="button" class="btn btn-outline-secondary" onclick="closeDeleteModal()">Отмена</button>
             <button type="button" class="btn btn-danger" onclick="confirmDelete()">Удалить</button>
         </div>
+    </div>
+</div>
+
+<!-- Add Client Modal -->
+<div class="modal-backdrop" id="clientModalBackdrop" onclick="closeClientModal()">
+    <div class="modal-dialog-custom" onclick="event.stopPropagation()">
+        <h5>Добавить заказчика</h5>
+        <form id="clientForm">
+            <div class="form-group">
+                <label for="clientName">Название заказчика *</label>
+                <input type="text" class="form-control-custom" id="clientName" required>
+            </div>
+
+            <div class="btn-group-custom">
+                <button type="button" class="btn btn-outline-secondary" onclick="closeClientModal()">Отмена</button>
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Add Object Modal -->
+<div class="modal-backdrop" id="objectModalBackdrop" onclick="closeObjectModal()">
+    <div class="modal-dialog-custom" onclick="event.stopPropagation()">
+        <h5>Добавить объект</h5>
+        <form id="objectForm">
+            <div class="form-group">
+                <label for="objectName">Название объекта *</label>
+                <input type="text" class="form-control-custom" id="objectName" required>
+            </div>
+
+            <div class="form-group">
+                <label for="objectCoordinates">Координаты</label>
+                <input type="text" class="form-control-custom" id="objectCoordinates" placeholder="55.7558, 37.6173">
+            </div>
+
+            <div class="form-group">
+                <label for="objectRegion">Область</label>
+                <div id="regionSelectContainer"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="objectCity">Город</label>
+                <div id="citySelectContainer"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="objectAddress">Адрес (улица, дом)</label>
+                <input type="text" class="form-control-custom" id="objectAddress" placeholder="ул. Примерная, д. 1">
+            </div>
+
+            <div class="btn-group-custom">
+                <button type="button" class="btn btn-outline-secondary" onclick="closeObjectModal()">Отмена</button>
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+            </div>
+        </form>
     </div>
 </div>
 
