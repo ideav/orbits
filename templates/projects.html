@@ -659,6 +659,8 @@
                 Конструкции
             </button>
 
+            <button class="btn btn-primary btn-sm" onclick="showAddTaskModal()">+&nbsp;Работа</button>
+
             <select class="filter-select" id="directionFilter" onchange="filterTasksAndOperations()">
                 <option value="">Все направления</option>
             </select>
@@ -673,7 +675,6 @@
 
             <input type="text" class="search-box" id="taskSearch" placeholder="Поиск по любому полю..." onkeyup="filterTasksAndOperations()">
 
-            <button class="btn btn-primary btn-sm" onclick="showAddTaskModal()">Добавить задачу</button>
         </div>
 
         <div class="task-list" id="taskList">
@@ -748,13 +749,13 @@
 <!-- Task Modal -->
 <div class="modal-backdrop" id="taskModalBackdrop" onclick="closeTaskModal()">
     <div class="modal-dialog-custom" onclick="event.stopPropagation()">
-        <h5 id="taskModalTitle">Добавить задачу</h5>
+        <h5 id="taskModalTitle">Добавить работу</h5>
         <form id="taskForm">
             <input type="hidden" id="taskId">
             <input type="hidden" id="taskProjectId">
 
             <div class="form-group">
-                <label for="taskName">Задача проекта *</label>
+                <label for="taskName">Работа проекта *</label>
                 <input type="text" class="form-control-custom" id="taskName" required>
             </div>
 
