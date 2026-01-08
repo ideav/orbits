@@ -803,7 +803,7 @@ function displayTasksAndOperations(data) {
     let headerHtml = `
         <div class="task-header-row">
             <span class="task-header-order">№</span>
-            <div class="task-header-content">Задача</div>
+            <div class="task-header-content">Расшифровка сметы</div>
             <div class="task-header-financial">
                 <div class="task-header-quantity">К-во</div>
                 <div class="task-header-unit">Ед. изм.</div>
