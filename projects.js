@@ -2727,14 +2727,26 @@ function displayConstructionsData() {
 
     tbody.innerHTML = '';
 
-    // Filter out temporary rows with empty construction names
+    // Filter out old temporary rows with empty construction names, but keep the most recent one
+    // This allows users to add new rows and see them immediately
+    const tempRows = constructionsData.filter(item =>
+        item['КонструкцияID'] && item['КонструкцияID'].startsWith('temp_')
+    );
+
+    // Find the most recent temporary row (last one in the array)
+    const mostRecentTempId = tempRows.length > 0 ? tempRows[tempRows.length - 1]['КонструкцияID'] : null;
+
     const validConstructions = constructionsData.filter(item => {
         // Keep all rows that are already saved (have real IDs)
         if (!item['КонструкцияID'] || !item['КонструкцияID'].startsWith('temp_')) {
             return true;
         }
-        // For temporary rows, only keep those with non-empty construction names
-        return item['Конструкция'] && item['Конструкция'].trim() !== '';
+        // For temporary rows, keep those with non-empty construction names
+        if (item['Конструкция'] && item['Конструкция'].trim() !== '') {
+            return true;
+        }
+        // Always keep the most recent temporary row, even if empty (for adding new constructions)
+        return item['КонструкцияID'] === mostRecentTempId;
     });
 
     if (validConstructions.length === 0) {
