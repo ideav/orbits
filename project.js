@@ -610,9 +610,12 @@ function addSelectedWorkType() {
 
     // Save to server via POST _m_set/{estimateId}?JSON&t6850={workTypeId}
     const estimateId = currentWorkTypeRow;
-    fetch(`https://${window.location.host}/${db}/_m_set/${estimateId}?JSON&t6850=${selectedId}&_xsrf=${xsrf}`, {
+    const formData = new FormData();
+    formData.append('_xsrf', xsrf);
+    fetch(`https://${window.location.host}/${db}/_m_set/${estimateId}?JSON&t6850=${selectedId}`, {
         method: 'POST',
-        credentials: 'include'
+        credentials: 'include',
+        body: formData
     })
     .then(response => response.json())
     .then(data => {
@@ -673,9 +676,12 @@ function clearAllWorkTypes(estimateId) {
     row['Виды работ'] = '';
 
     // Send command to clear work types in DB: _m_set/{id}?JSON&t6850=%20
-    fetch(`https://${window.location.host}/${db}/_m_set/${estimateId}?JSON&t6850=%20&_xsrf=${xsrf}`, {
+    const formData = new FormData();
+    formData.append('_xsrf', xsrf);
+    fetch(`https://${window.location.host}/${db}/_m_set/${estimateId}?JSON&t6850=%20`, {
         method: 'POST',
-        credentials: 'include'
+        credentials: 'include',
+        body: formData
     })
     .then(response => response.json())
     .then(data => {
@@ -734,9 +740,12 @@ function updateEstimateField(estimateId, field, value) {
 
     // Save to server if not a new row
     if (!row['isNew'] && apiParam) {
-        fetch(`https://${window.location.host}/${db}/_m_set/${estimateId}?JSON&${apiParam}&_xsrf=${xsrf}`, {
+        const formData = new FormData();
+        formData.append('_xsrf', xsrf);
+        fetch(`https://${window.location.host}/${db}/_m_set/${estimateId}?JSON&${apiParam}`, {
             method: 'POST',
-            credentials: 'include'
+            credentials: 'include',
+            body: formData
         })
         .then(response => response.json())
         .then(data => {
@@ -757,9 +766,12 @@ function handleEstimateNameBlur(estimateId, value) {
 
     // If this is a new row and name is filled, save to DB
     if (row['isNew'] && value && value.trim()) {
-        fetch(`https://${window.location.host}/${db}/_m_new/678?JSON&up=${selectedProject['ПроектID']}&t678=${encodeURIComponent(value)}&_xsrf=${xsrf}`, {
+        const formData = new FormData();
+        formData.append('_xsrf', xsrf);
+        fetch(`https://${window.location.host}/${db}/_m_new/678?JSON&up=${selectedProject['ПроектID']}&t678=${encodeURIComponent(value)}`, {
             method: 'POST',
-            credentials: 'include'
+            credentials: 'include',
+            body: formData
         })
         .then(response => response.json())
         .then(data => {
@@ -797,9 +809,12 @@ function deleteEstimateRowDirect(estimateId) {
     }
 
     // Delete from server
-    fetch(`https://${window.location.host}/${db}/_m_del/${estimateId}?JSON&_xsrf=${xsrf}`, {
+    const formData = new FormData();
+    formData.append('_xsrf', xsrf);
+    fetch(`https://${window.location.host}/${db}/_m_del/${estimateId}?JSON`, {
         method: 'POST',
-        credentials: 'include'
+        credentials: 'include',
+        body: formData
     })
     .then(response => response.json())
     .then(data => {
@@ -982,9 +997,12 @@ function confirmDeleteEstimateRow() {
     }
 
     // Delete from server
-    fetch(`https://${window.location.host}/${db}/_m_del/${estimateId}?JSON&_xsrf=${xsrf}`, {
+    const formData = new FormData();
+    formData.append('_xsrf', xsrf);
+    fetch(`https://${window.location.host}/${db}/_m_del/${estimateId}?JSON`, {
         method: 'POST',
-        credentials: 'include'
+        credentials: 'include',
+        body: formData
     })
     .then(response => response.json())
     .then(data => {
