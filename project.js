@@ -1175,8 +1175,9 @@ function buildFlatConstructionRows(construction, estimatePositions, rowNumber) {
                 isFirstRowOfConstruction = false;
             }
 
-            // Estimate position cell
-            html += `<td class="estimate-cell">${position ? escapeHtml(position['Позиция сметы'] || '—') : '—'}</td>`;
+            // Estimate position cell (with tooltip showing position ID)
+            const posId = position ? (position['Позиция сметыID'] || '?') : '';
+            html += `<td class="estimate-cell" title="Позиция сметыID: ${posId}">${position ? escapeHtml(position['Позиция сметы'] || '—') : '—'}</td>`;
 
             // Empty product cells
             html += '<td class="product-cell">—</td>'.repeat(12);
@@ -1200,14 +1201,17 @@ function buildFlatConstructionRows(construction, estimatePositions, rowNumber) {
                     isFirstRowOfConstruction = false;
                 }
 
-                // Estimate position cell (only on first row of this position)
+                // Estimate position cell (only on first row of this position, with tooltip showing position ID)
                 if (isFirstRowOfPosition) {
-                    html += `<td class="estimate-cell" ${rowCount > 1 ? `rowspan="${rowCount}"` : ''}>${escapeHtml(position['Позиция сметы'] || '—')}</td>`;
+                    const positionId = position['Позиция сметыID'] || '?';
+                    html += `<td class="estimate-cell" title="Позиция сметыID: ${positionId}" ${rowCount > 1 ? `rowspan="${rowCount}"` : ''}>${escapeHtml(position['Позиция сметы'] || '—')}</td>`;
                     isFirstRowOfPosition = false;
                 }
 
                 // Product cells (using field names from API with fallbacks)
-                html += `<td class="product-cell">${escapeHtml(prod['Изделие'] || '—')}</td>`;
+                // First cell (Изделие) has tooltip showing which position this product belongs to
+                const prodPositionId = prod['Позиция сметыID'] || prod['Смета проектаID'] || '?';
+                html += `<td class="product-cell" title="Позиция сметыID: ${prodPositionId}">${escapeHtml(prod['Изделие'] || '—')}</td>`;
                 html += `<td class="product-cell">${escapeHtml(prod['Маркировка'] || '—')}</td>`;
                 html += `<td class="product-cell">${escapeHtml(prod['Документация'] || prod['Документация по изделию'] || prod['Вид документации'] || '—')}</td>`;
                 html += `<td class="product-cell">${escapeHtml(prod['Высота от пола мм'] || '—')}</td>`;
