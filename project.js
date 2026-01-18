@@ -78,10 +78,10 @@ function loadDictionaries() {
         .catch(error => console.error('Error loading objects:', error));
 
     // Load units (Единицы измерения)
-    fetch(`https://${window.location.host}/${db}/_l/17?JSON`)
+    fetch(`https://${window.location.host}/${db}/report/6031?JSON_KV`)
         .then(response => response.json())
         .then(data => {
-            dictionaries.units = data.list || [];
+            dictionaries.units = data || [];
         })
         .catch(error => console.error('Error loading units:', error));
 }
@@ -413,7 +413,7 @@ function displayEstimateTable(data) {
 
         // Build units dropdown options
         const unitOptions = dictionaries.units.map(u =>
-            `<option value="${u.id}" ${u.value === row['Ед.изм.'] ? 'selected' : ''}>${escapeHtml(u.value)}</option>`
+            `<option value="${u['Ед.изм.ID']}" ${u['Ед.изм.'] === row['Ед.изм.'] ? 'selected' : ''}>${escapeHtml(u['Ед.изм.'])}</option>`
         ).join('');
 
         return `
@@ -722,8 +722,8 @@ function updateEstimateField(estimateId, field, value) {
             break;
         case 'unit':
             row['Ед.изм.ID'] = value;
-            const unit = dictionaries.units.find(u => u.id == value);
-            if (unit) row['Ед.изм.'] = unit.value;
+            const unit = dictionaries.units.find(u => u['Ед.изм.ID'] == value);
+            if (unit) row['Ед.изм.'] = unit['Ед.изм.'];
             apiParam = `t1036=${encodeURIComponent(value)}`;
             break;
         case 'price':
