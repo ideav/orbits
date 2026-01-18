@@ -1055,6 +1055,16 @@ function loadConstructionsData(projectId) {
         constructionsData = constructions || [];
         constructionEstimatePositions = estimatePositions || [];
         constructionProducts = products || [];
+
+        // Debug logging to verify data is loaded
+        console.log('Constructions loaded:', constructionsData.length, 'items');
+        console.log('Estimate positions loaded:', constructionEstimatePositions.length, 'items');
+        console.log('Products loaded:', constructionProducts.length, 'items');
+
+        if (constructionEstimatePositions.length > 0) {
+            console.log('Sample estimate position:', constructionEstimatePositions[0]);
+        }
+
         displayConstructionsTable(constructionsData);
     })
     .catch(error => {
@@ -1088,10 +1098,13 @@ function displayConstructionsTable(data) {
     tbody.innerHTML = sortedData.map((row, index) => {
         const constructionId = row['КонструкцияID'];
 
-        // Get estimate positions for this construction
+        // Get estimate positions for this construction (convert to string for reliable comparison)
         const estimatePositions = constructionEstimatePositions.filter(
-            ep => ep['КонструкцияID'] == constructionId
+            ep => String(ep['КонструкцияID']) === String(constructionId)
         );
+
+        // Debug logging
+        console.log(`Construction ${constructionId}: found ${estimatePositions.length} estimate positions`);
 
         // Build nested estimate positions table
         const estimatePositionsHtml = buildEstimatePositionsTable(estimatePositions);
@@ -1126,9 +1139,9 @@ function buildEstimatePositionsTable(positions) {
     positions.forEach(pos => {
         const estimateId = pos['Смета проектаID'];
 
-        // Get products for this estimate position
+        // Get products for this estimate position (convert to string for reliable comparison)
         const products = constructionProducts.filter(
-            p => p['Смета проектаID'] == estimateId
+            p => String(p['Смета проектаID']) === String(estimateId)
         );
 
         const productsHtml = buildProductsTable(products);
