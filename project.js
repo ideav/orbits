@@ -441,6 +441,7 @@ function displayEstimateTable(data) {
                     <div class="work-types-cell" data-estimate-id="${row['СметаID']}">
                         ${workTypesBadges}
                         <button class="add-work-type-btn" onclick="showWorkTypeSelector(event, '${row['СметаID']}')" title="Добавить вид работ">+</button>
+                        ${workTypesIds.length > 0 ? `<button class="clear-work-types-btn" onclick="clearAllWorkTypes('${row['СметаID']}')" title="Удалить все виды работ">×</button>` : ''}
                     </div>
                 </td>
                 <td class="row-actions">
@@ -484,7 +485,6 @@ function renderWorkTypesBadges(workTypeIds, estimateId) {
 
         badges += `<span class="work-type-badge" title="${escapeHtml(workTypeNames)}">
             ${escapeHtml(dirLabel)}/${escapeHtml(workTypeNames)}
-            <span class="remove-btn" onclick="removeWorkType('${estimateId}', '${workTypes.map(w => w['Вид работID']).join(',')}')">&times;</span>
         </span>`;
     });
 
@@ -658,6 +658,32 @@ function removeWorkType(estimateId, workTypeIdsToRemove) {
 
     // Refresh display
     displayEstimateTable(estimateData);
+}
+
+/**
+ * Clear all work types from estimate row
+ */
+function clearAllWorkTypes(estimateId) {
+    const row = estimateData.find(r => r['СметаID'] === estimateId);
+    if (!row) return;
+
+    // Clear work types in local data
+    row['Виды работ'] = '';
+
+    // Send command to clear work types in DB: _m_set/{id}?JSON&t6850=%20
+    fetch(`https://${window.location.host}/${db}/_m_set/${estimateId}?JSON&t6850=%20&_xsrf=${xsrf}`, {
+        method: 'POST',
+        credentials: 'include'
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Cleared all work types:', data);
+        // Refresh display
+        displayEstimateTable(estimateData);
+    })
+    .catch(error => {
+        console.error('Error clearing work types:', error);
+    });
 }
 
 /**
