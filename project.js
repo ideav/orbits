@@ -2092,10 +2092,11 @@ function addSelectedProduct() {
     }
 
     const productId = select.value;
+    const productName = select.options[select.selectedIndex]?.textContent || '';
 
     // Handle bulk addition
     if (currentProductAddContext.isBulk && currentProductAddContext.positions) {
-        addProductToMultiplePositions(productId, currentProductAddContext.positions);
+        addProductToMultiplePositions(productId, productName, currentProductAddContext.positions);
         return;
     }
 
@@ -2104,8 +2105,8 @@ function addSelectedProduct() {
     // Create product via API: POST _m_new/6133?JSON&up={КонструкцияID}&t7009={Позиция сметыID}
     const url = `https://${window.location.host}/${db}/_m_new/6133?JSON&up=${constructionId}&t7009=${estimatePositionId}`;
 
-    // Build request body with XSRF token
-    let body = `6133=${productId}`;
+    // Build request body with XSRF token and product name
+    let body = `6133=${productId}&t6133=${encodeURIComponent(productName)}`;
     if (typeof xsrf !== 'undefined' && xsrf) {
         body += `&_xsrf=${encodeURIComponent(xsrf)}`;
     }
@@ -2138,7 +2139,7 @@ function addSelectedProduct() {
 /**
  * Add product to multiple estimate positions (bulk add)
  */
-async function addProductToMultiplePositions(productId, positions) {
+async function addProductToMultiplePositions(productId, productName, positions) {
     closeProductSelector();
 
     let successCount = 0;
@@ -2153,7 +2154,7 @@ async function addProductToMultiplePositions(productId, positions) {
 
         const url = `https://${window.location.host}/${db}/_m_new/6133?JSON&up=${constructionId}&t7009=${estimatePositionId}`;
 
-        let body = `6133=${productId}`;
+        let body = `6133=${productId}&t6133=${encodeURIComponent(productName)}`;
         if (typeof xsrf !== 'undefined' && xsrf) {
             body += `&_xsrf=${encodeURIComponent(xsrf)}`;
         }
