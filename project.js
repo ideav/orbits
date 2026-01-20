@@ -2012,7 +2012,7 @@ function addSelectedProduct() {
     // Build request body with XSRF token
     let body = `6133=${productId}`;
     if (typeof xsrf !== 'undefined' && xsrf) {
-        body += `&xsrf=${encodeURIComponent(xsrf)}`;
+        body += `&_xsrf=${encodeURIComponent(xsrf)}`;
     }
 
     fetch(url, {
