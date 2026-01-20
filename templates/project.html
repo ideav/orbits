@@ -1012,10 +1012,6 @@
             <!-- Controls row with add button and column visibility -->
             <div class="column-controls">
                 <button class="btn btn-primary btn-sm btn-add-construction" onclick="promptAddConstruction()">+&nbsp;Конструкция</button>
-                <button class="btn-bulk-delete" id="btnBulkDelete" onclick="showBulkDeleteConfirmation()">
-                    <span class="delete-icon">🗑</span>
-                    <span id="bulkDeleteCount">Удалить</span>
-                </button>
                 <span class="column-controls-label">Колонки:</span>
                 <div class="column-toggle-group">
                     <label class="column-toggle-all">
@@ -1029,6 +1025,10 @@
                     <label><input type="checkbox" data-col="etazh" checked onchange="toggleColumn('etazh', this.checked)"> Этаж</label>
                     <label><input type="checkbox" id="toggleProductDetails" checked onchange="toggleProductDetailsColumns(this.checked)"> Детали изделий</label>
                 </div>
+                <button class="btn-bulk-delete btn-sm " id="btnBulkDelete" onclick="showBulkDeleteConfirmation()">
+                    <span class="delete-icon">🗑</span>
+                    <span id="bulkDeleteCount">Удалить</span>
+                </button>
             </div>
             <div class="constructions-table-container">
                 <table class="constructions-table">
