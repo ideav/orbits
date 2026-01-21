@@ -219,16 +219,3 @@ Your prepared working directory: /tmp/gh-issue-solver-1767549372266
 Proceed.
 
 Run timestamp: 2026-01-04T17:56:14.263Z
-
----
-
-Issue to solve: https://github.com/ideav/orbits/issues/273
-Your prepared branch: issue-273-ab93f1a8176f
-Your prepared working directory: /tmp/gh-issue-solver-1769017922599
-Your forked repository: konard/ideav-orbits
-Original repository (upstream): ideav/orbits
-
-Proceed.
-
-
-Run timestamp: 2026-01-21T17:52:09.288Z
