@@ -3562,8 +3562,8 @@ function updateOperationsButtons() {
             countSpan.textContent = count;
         }
 
-        // Only show button if there are operations
-        button.style.display = count > 0 ? 'inline-flex' : 'none';
+        // Always show button if product is specified (even with 0 operations)
+        button.style.display = 'inline-flex';
     });
 }
 
