@@ -1697,6 +1697,12 @@ function setupFormHandlers() {
         });
     }
 
+    // Create Operation form
+    const createOperationForm = document.getElementById('createOperationForm');
+    if (createOperationForm) {
+        createOperationForm.addEventListener('submit', saveNewOperation);
+    }
+
     // Duration calculation
     const startInput = document.getElementById('projectStart');
     const durationInput = document.getElementById('projectDuration');
@@ -4095,3 +4101,184 @@ window.toggleColumnCheckboxes = function(type, checked) {
     updateBulkAddIconVisibility();
     updateBulkDeleteButtonVisibility();
 };
+
+/**
+ * Open the Create Operation modal
+ */
+async function openCreateOperationModal() {
+    if (!currentOperationsContext) {
+        console.error('No current operations context');
+        return;
+    }
+
+    const modal = document.getElementById('createOperationModalBackdrop');
+    if (!modal) return;
+
+    // Reset form
+    document.getElementById('createOperationForm').reset();
+
+    // Populate product dropdown
+    const productSelect = document.getElementById('operationProduct');
+    productSelect.innerHTML = '<option value="">Пустое значение</option>';
+
+    // Add current product as selected option
+    if (currentOperationsContext.productId && currentOperationsContext.productName) {
+        const option = document.createElement('option');
+        option.value = currentOperationsContext.productId;
+        option.textContent = currentOperationsContext.productName;
+        option.selected = true;
+        productSelect.appendChild(option);
+    }
+
+    // Fetch and populate work types from API
+    try {
+        const url = `https://${window.location.host}/${db}/report/6631?JSON_KV&FR_ProjectID=${projectInfo['ПроектID']}`;
+        const response = await fetch(url, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const workTypes = await response.json();
+
+        // Populate work types dropdown
+        const workTypesSelect = document.getElementById('operationWorkTypes');
+        workTypesSelect.innerHTML = '';
+
+        // Get unique work types from the estimate
+        const uniqueWorkTypes = new Map();
+        workTypes.forEach(estimate => {
+            if (estimate['Виды работ']) {
+                const workTypeIds = estimate['Виды работ'].split(',').filter(Boolean);
+                workTypeIds.forEach(id => {
+                    // Find the work type name from workTypesReference
+                    const workType = workTypesReference.find(wt => String(wt['Виды работID']) === String(id));
+                    if (workType && !uniqueWorkTypes.has(id)) {
+                        uniqueWorkTypes.set(id, workType['Виды работ']);
+                    }
+                });
+            }
+        });
+
+        // Add options to select
+        uniqueWorkTypes.forEach((name, id) => {
+            const option = document.createElement('option');
+            option.value = id;
+            option.textContent = name;
+            workTypesSelect.appendChild(option);
+        });
+
+        // If only one work type, select it
+        if (uniqueWorkTypes.size === 1) {
+            workTypesSelect.selectedIndex = 0;
+        }
+
+        // Show modal
+        modal.style.display = 'flex';
+
+    } catch (error) {
+        console.error('Error loading work types:', error);
+        alert('Ошибка при загрузке видов работ');
+    }
+}
+
+/**
+ * Close the Create Operation modal
+ */
+function closeCreateOperationModal() {
+    const modal = document.getElementById('createOperationModalBackdrop');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+
+    // Reset form
+    const form = document.getElementById('createOperationForm');
+    if (form) {
+        form.reset();
+    }
+}
+
+/**
+ * Save new operation
+ */
+async function saveNewOperation(event) {
+    event.preventDefault();
+
+    if (!currentOperationsContext) {
+        console.error('No current operations context');
+        return;
+    }
+
+    const name = document.getElementById('operationName').value.trim();
+    const productId = document.getElementById('operationProduct').value;
+    const workTypesSelect = document.getElementById('operationWorkTypes');
+    const description = document.getElementById('operationDescription').value.trim();
+
+    // Validate required fields
+    if (!name) {
+        alert('Пожалуйста, введите название операции');
+        return;
+    }
+
+    if (!description) {
+        alert('Пожалуйста, введите описание');
+        return;
+    }
+
+    // Get selected work types
+    const selectedWorkTypes = Array.from(workTypesSelect.selectedOptions).map(opt => opt.value);
+
+    if (selectedWorkTypes.length === 0) {
+        alert('Пожалуйста, выберите хотя бы один вид работ');
+        return;
+    }
+
+    try {
+        // Build URL with parameters
+        const url = `https://${window.location.host}/${db}/_m_new/700?JSON`;
+
+        // Build form data
+        const formData = new URLSearchParams();
+        formData.append('_xsrf', xsrf); // XSRF token
+        formData.append('t700', name); // Operation name
+        if (productId) {
+            formData.append('t6700', productId); // Product ID (optional)
+        }
+        formData.append('t5244', selectedWorkTypes.join(',')); // Work types (comma-separated)
+        formData.append('t1043', description); // Description
+
+        const response = await fetch(url, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: formData.toString()
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        // Close modal
+        closeCreateOperationModal();
+
+        // Show success message
+        alert('Операция успешно создана');
+
+        // Reload operations data if we're viewing the same product
+        if (currentOperationsContext.productId === productId || !productId) {
+            loadOperationsData();
+        }
+
+    } catch (error) {
+        console.error('Error saving operation:', error);
+        alert('Ошибка при сохранении операции');
+    }
+}

@@ -1884,6 +1884,7 @@
                 <div class="operations-controls">
                     <button class="btn btn-success btn-sm" id="btnConfirmAddOperations" onclick="confirmAddOperations()" disabled title="Добавить выбранные операции">Добавить</button>
                     <button class="btn btn-secondary btn-sm ml-2" onclick="invertOperationSelection()" title="Инвертировать выбор">Инвертировать выбор</button>
+                    <button class="btn btn-primary btn-sm ml-2" onclick="openCreateOperationModal()" title="Создать новую операцию">Создать операцию</button>
                 </div>
                 <div class="operations-table-container">
                     <table class="operations-table">
@@ -1918,6 +1919,43 @@
                 <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Create Operation Modal -->
+<div class="modal-backdrop" id="createOperationModalBackdrop" onclick="closeCreateOperationModal()" style="display: none; z-index: 1080;">
+    <div class="modal-dialog-custom" onclick="event.stopPropagation()">
+        <h5>Создать операцию</h5>
+        <form id="createOperationForm">
+            <div class="form-group">
+                <label for="operationName">Название операции *</label>
+                <input type="text" class="form-control-custom" id="operationName" required>
+            </div>
+
+            <div class="form-group">
+                <label for="operationProduct">Изделие</label>
+                <select class="form-control-custom" id="operationProduct">
+                    <option value="">Пустое значение</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="operationWorkTypes">Вид работ *</label>
+                <select class="form-control-custom" id="operationWorkTypes" multiple size="5" required>
+                </select>
+                <small style="color: #6c757d; font-size: 12px;">Удерживайте Ctrl (Cmd) для выбора нескольких значений</small>
+            </div>
+
+            <div class="form-group">
+                <label for="operationDescription">Описание *</label>
+                <textarea class="form-control-custom" id="operationDescription" rows="3" required></textarea>
+            </div>
+
+            <div class="btn-group-custom">
+                <button type="button" class="btn btn-outline-secondary" onclick="closeCreateOperationModal()">Отмена</button>
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+            </div>
+        </form>
     </div>
 </div>
 
