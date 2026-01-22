@@ -2390,6 +2390,9 @@ function updateBulkDeleteButtonVisibility() {
             countSpan.textContent = 'Удалить';
         }
     }
+
+    // Also update bulk add operations icon visibility when product checkboxes change
+    updateBulkAddOperationsIconVisibility();
 }
 
 /**
@@ -3977,6 +3980,11 @@ function updateAddOperationsButton() {
  * Confirm and add selected operations
  */
 async function confirmAddOperations() {
+    // Check if we're in bulk mode
+    if (bulkOperationsContext) {
+        return await confirmBulkAddOperations();
+    }
+
     if (!currentOperationsContext) {
         console.error('No current operations context');
         return;
@@ -4281,4 +4289,374 @@ async function saveNewOperation(event) {
         console.error('Error saving operation:', error);
         alert('Ошибка при сохранении операции');
     }
+}
+
+/**
+ * Update visibility of bulk add operations button based on checked product checkboxes
+ */
+function updateBulkAddOperationsIconVisibility() {
+    const allCheckedProducts = document.querySelectorAll('.constructions-table input.compact-checkbox[data-type="product"]:checked');
+    // Count only checkboxes in visible rows
+    let visibleCheckedCount = 0;
+    allCheckedProducts.forEach(cb => {
+        const row = cb.closest('tr');
+        if (row && row.style.display !== 'none') {
+            visibleCheckedCount++;
+        }
+    });
+
+    const icon = document.getElementById('bulkAddOperationsIcon');
+    if (icon) {
+        if (visibleCheckedCount > 0) {
+            icon.classList.add('visible');
+        } else {
+            icon.classList.remove('visible');
+        }
+    }
+}
+
+// Context for bulk operations assignment
+let bulkOperationsContext = null;
+
+/**
+ * Show bulk operations modal for selected products
+ */
+async function showBulkOperationsModal(event) {
+    event.stopPropagation();
+
+    // Get all checked product checkboxes
+    const checkedProducts = document.querySelectorAll('.constructions-table input.compact-checkbox[data-type="product"]:checked');
+    if (checkedProducts.length === 0) {
+        alert('Выберите хотя бы одно изделие');
+        return;
+    }
+
+    // Collect product IDs and estimate position IDs
+    const products = [];
+    const estimatePositionIds = new Set();
+
+    checkedProducts.forEach(cb => {
+        const row = cb.closest('tr');
+        if (row && row.style.display !== 'none') {
+            const productId = cb.dataset.id;
+            // Find estimate position ID from the row (it's in the estimate position cell's title attribute)
+            const estimateCells = row.querySelectorAll('td.estimate-cell');
+            estimateCells.forEach(cell => {
+                const title = cell.getAttribute('title');
+                if (title) {
+                    const match = title.match(/Позиция сметыID: (\d+)/);
+                    if (match && match[1]) {
+                        estimatePositionIds.add(match[1]);
+                    }
+                }
+            });
+
+            if (productId) {
+                products.push({ productId });
+            }
+        }
+    });
+
+    if (products.length === 0) {
+        alert('Не удалось определить выбранные изделия');
+        return;
+    }
+
+    // Store bulk operations context
+    bulkOperationsContext = {
+        products: products,
+        estimatePositionIds: Array.from(estimatePositionIds)
+    };
+
+    // Show modal with loading state
+    const modal = document.getElementById('addOperationsModalBackdrop');
+    const loading = document.getElementById('addOperationsLoading');
+    const content = document.getElementById('addOperationsContent');
+    const subtitle = document.getElementById('addOperationsModalSubtitle');
+    const title = document.getElementById('addOperationsModalTitle');
+
+    if (!modal) {
+        console.error('Bulk operations modal not found');
+        return;
+    }
+
+    modal.style.display = 'flex';
+    loading.style.display = 'block';
+    content.style.display = 'none';
+
+    // Update title and subtitle
+    if (title) {
+        title.textContent = 'Добавление операций';
+    }
+    if (subtitle) {
+        subtitle.textContent = `Выбрано изделий: ${products.length}`;
+    }
+
+    try {
+        // Fetch available operations from API
+        // Build FR_SID parameter (comma-separated estimate position IDs)
+        const frSid = bulkOperationsContext.estimatePositionIds.join(',');
+        // Build IID parameter (comma-separated product IDs)
+        const iid = products.map(p => p.productId).join(',');
+
+        const url = `https://${window.location.host}/${db}/report/7273?JSON_KV&FR_SID=${frSid}&IID=${iid}`;
+
+        const response = await fetch(url, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const availableOperations = await response.json();
+
+        // Get all existing operations for all selected products
+        const existingOperationsIds = new Set();
+        products.forEach(product => {
+            const productOps = operationsData.filter(op => String(op['ИзделиеID']) === String(product.productId));
+            productOps.forEach(op => {
+                const opId = op['ОперацииID'] || op['ОперацияID'];
+                if (opId) {
+                    existingOperationsIds.add(String(opId));
+                }
+            });
+        });
+
+        // Filter out operations that already exist for any selected product
+        const newOperations = availableOperations.filter(op =>
+            !existingOperationsIds.has(String(op['ОперацииID']))
+        );
+
+        // Display the new operations
+        displayBulkOperationsList(newOperations);
+
+        // Show content, hide loading
+        loading.style.display = 'none';
+        content.style.display = 'block';
+
+    } catch (error) {
+        console.error('Error fetching available operations:', error);
+        alert('Ошибка при загрузке доступных операций');
+        closeBulkOperationsModal();
+    }
+}
+
+/**
+ * Display list of operations for bulk assignment
+ */
+function displayBulkOperationsList(operations) {
+    const tbody = document.getElementById('newOperationsListBody');
+    const btnConfirm = document.getElementById('btnConfirmAddOperations');
+
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    if (operations.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px;">Нет доступных операций для добавления</td></tr>';
+        if (btnConfirm) {
+            btnConfirm.disabled = true;
+        }
+        return;
+    }
+
+    operations.forEach((op, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td class="col-checkbox">
+                <input type="checkbox" class="compact-checkbox new-operation-checkbox"
+                       data-operation-id="${op['ОперацииID']}"
+                       data-operation-name="${escapeHtml(op['Операции'])}"
+                       data-product-type="${op['Изделие (тип)'] || ''}"
+                       checked
+                       onchange="updateAddOperationsButton()">
+            </td>
+            <td class="col-number">${index + 1}</td>
+            <td class="col-operation-name">${escapeHtml(op['Операции'])}</td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    // Enable the Add button
+    if (btnConfirm) {
+        btnConfirm.disabled = false;
+    }
+}
+
+/**
+ * Close bulk operations modal
+ */
+function closeBulkOperationsModal() {
+    const modal = document.getElementById('addOperationsModalBackdrop');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+
+    // Clear context
+    bulkOperationsContext = null;
+
+    // Clear the list
+    const tbody = document.getElementById('newOperationsListBody');
+    if (tbody) {
+        tbody.innerHTML = '';
+    }
+
+    // Reset check all checkbox
+    const checkAll = document.getElementById('checkAllNewOperations');
+    if (checkAll) {
+        checkAll.checked = true;
+    }
+}
+
+/**
+ * Confirm and add selected operations to all selected products
+ */
+async function confirmBulkAddOperations() {
+    if (!bulkOperationsContext) {
+        console.error('No bulk operations context');
+        return;
+    }
+
+    const checkboxes = document.querySelectorAll('.new-operation-checkbox:checked');
+    if (checkboxes.length === 0) {
+        alert('Выберите хотя бы одну операцию');
+        return;
+    }
+
+    const operations = Array.from(checkboxes).map(cb => ({
+        id: cb.getAttribute('data-operation-id'),
+        name: cb.getAttribute('data-operation-name'),
+        productType: cb.getAttribute('data-product-type') || ''
+    }));
+
+    // Close add operations modal
+    closeBulkOperationsModal();
+
+    // Show progress modal
+    const progressModal = document.getElementById('progressModalBackdrop');
+    const progressMessage = document.getElementById('progressMessage');
+    const progressBar = document.getElementById('progressBar');
+
+    if (progressModal) {
+        progressModal.style.display = 'flex';
+    }
+
+    const products = bulkOperationsContext.products;
+    let completed = 0;
+    const totalOperations = operations.length * products.length;
+
+    // For each product, add each operation
+    for (const product of products) {
+        // Get product details to check type
+        const productData = constructionProducts.find(p => String(p['ИзделиеID']) === String(product.productId));
+        const productTypeId = productData ? (productData['Изделие'] || '') : '';
+
+        // Get existing operations for this product
+        const existingOps = operationsData
+            .filter(op => String(op['ИзделиеID']) === String(product.productId))
+            .map(op => String(op['ОперацииID'] || op['ОперацияID']));
+
+        for (const operation of operations) {
+            // Skip if operation already exists for this product
+            if (existingOps.includes(String(operation.id))) {
+                completed++;
+                // Update progress
+                if (progressMessage) {
+                    progressMessage.textContent = `Добавлено ${completed} из ${totalOperations}`;
+                }
+                if (progressBar) {
+                    const percentage = (completed / totalOperations) * 100;
+                    progressBar.style.width = `${percentage}%`;
+                }
+                continue;
+            }
+
+            // Filter: only add if product type matches or operation has empty product type
+            if (operation.productType && operation.productType !== productTypeId) {
+                completed++;
+                // Update progress
+                if (progressMessage) {
+                    progressMessage.textContent = `Добавлено ${completed} из ${totalOperations}`;
+                }
+                if (progressBar) {
+                    const percentage = (completed / totalOperations) * 100;
+                    progressBar.style.width = `${percentage}%`;
+                }
+                continue;
+            }
+
+            try {
+                const url = `https://${window.location.host}/${db}/_m_new/695?JSON&up=${product.productId}`;
+
+                const formData = new URLSearchParams();
+                formData.append('t695', operation.name);
+                formData.append('t702', operation.id);
+                formData.append('_xsrf', xsrf);
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: formData.toString()
+                });
+
+                if (!response.ok) {
+                    console.error(`HTTP error adding operation to product ${product.productId}: ${response.status}`);
+                }
+
+                completed++;
+
+                // Update progress
+                if (progressMessage) {
+                    progressMessage.textContent = `Добавлено ${completed} из ${totalOperations}`;
+                }
+                if (progressBar) {
+                    const percentage = (completed / totalOperations) * 100;
+                    progressBar.style.width = `${percentage}%`;
+                }
+
+            } catch (error) {
+                console.error(`Error adding operation ${operation.name} to product ${product.productId}:`, error);
+                completed++;
+            }
+        }
+    }
+
+    // Close progress modal after a short delay
+    setTimeout(() => {
+        if (progressModal) {
+            progressModal.style.display = 'none';
+        }
+
+        // Reset progress
+        if (progressMessage) {
+            progressMessage.textContent = 'Добавлено 0 из 0';
+        }
+        if (progressBar) {
+            progressBar.style.width = '0%';
+        }
+
+        // Uncheck all product checkboxes and hide the button
+        document.querySelectorAll('.constructions-table input.compact-checkbox[data-type="product"]:checked').forEach(cb => {
+            cb.checked = false;
+        });
+        const headerCheckbox = document.getElementById('checkAllProducts');
+        if (headerCheckbox) {
+            headerCheckbox.checked = false;
+        }
+        updateBulkAddOperationsIconVisibility();
+        updateBulkDeleteButtonVisibility();
+
+        // Reload operations data
+        if (selectedProject) {
+            loadConstructionsData(selectedProject['ПроектID']);
+        }
+    }, 1000);
 }

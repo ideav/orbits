@@ -1570,6 +1570,7 @@
                             <th class="col-checkbox" title="Выбрать все изделия"><input type="checkbox" class="compact-checkbox" id="checkAllProducts" onchange="toggleColumnCheckboxes('product', this.checked)"></th>
                             <th class="col-product">
                                 Изделие
+                                <span id="bulkAddOperationsIcon" class="bulk-add-product-icon" onclick="showBulkOperationsModal(event)" title="Добавить операции к выбранным изделиям">+ Операции</span>
                                 <span class="filter-icon" onclick="toggleProductFilter(event)" title="Фильтровать по изделию">▾</span>
                                 <div id="productFilterDropdown" class="filter-dropdown" style="display: none;">
                                     <div class="filter-dropdown-header">
