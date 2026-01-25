@@ -3901,7 +3901,7 @@ function displayOperationsList(operations) {
     }
 
     operations.forEach((op, index) => {
-        const operationId = op['ОперацииID'] || op['ОперацияID'];
+        const operationId = op['ОперацияID'] || op['ОперацииID'];
         const operationName = op['Операция'] || '—';
         const workTypeId = op['Вид работID'] || '';
 
