@@ -4456,15 +4456,14 @@ async function openCreateOperationModal() {
         const uniqueWorkTypes = new Map();
 
         // Filter to only work types from the current estimate (if estimateId is available and not empty)
-        // Try both field names: СметаID and Позиция сметыID since different reports may use different field names
+        // Note: estimateId comes from product's Позиция сметыID field and should match estimate's СметаID field
         const hasEstimateId = currentOperationsContext.estimateId && String(currentOperationsContext.estimateId).trim() !== '';
         console.log('hasEstimateId:', hasEstimateId);
 
         const relevantEstimates = hasEstimateId
             ? workTypes.filter(estimate => {
-                const estimateIdField = estimate['СметаID'] || estimate['Позиция сметыID'];
-                const match = String(estimateIdField) === String(currentOperationsContext.estimateId);
-                console.log('Checking estimate:', estimate['Смета'], 'СметаID:', estimate['СметаID'], 'Позиция сметыID:', estimate['Позиция сметыID'], 'matches:', match);
+                const match = String(estimate['СметаID']) === String(currentOperationsContext.estimateId);
+                console.log('Checking estimate:', estimate['Смета'], 'СметаID:', estimate['СметаID'], 'currentEstimateId:', currentOperationsContext.estimateId, 'match:', match);
                 return match;
             })
             : workTypes;
