@@ -4439,6 +4439,12 @@ async function openCreateOperationModal() {
 
         const workTypes = await response.json();
 
+        // Debug logging
+        console.log('=== Debug: openCreateOperationModal ===');
+        console.log('currentOperationsContext.estimateId:', currentOperationsContext.estimateId);
+        console.log('Total estimates from API:', workTypes.length);
+        console.log('All estimates data:', workTypes);
+
         // Populate work types dropdown
         const workTypesSelect = document.getElementById('operationWorkTypes');
         workTypesSelect.innerHTML = '';
@@ -4451,9 +4457,12 @@ async function openCreateOperationModal() {
             ? workTypes.filter(estimate => String(estimate['СметаID']) === String(currentOperationsContext.estimateId))
             : workTypes;
 
+        console.log('Filtered relevantEstimates:', relevantEstimates);
+
         relevantEstimates.forEach(estimate => {
             if (estimate['Виды работ']) {
                 const workTypeIds = estimate['Виды работ'].split(',').filter(Boolean);
+                console.log('Estimate:', estimate['Смета'], 'СметаID:', estimate['СметаID'], 'Work type IDs:', workTypeIds);
                 workTypeIds.forEach(id => {
                     // Find the work type name from workTypesReference
                     const workType = workTypesReference.find(wt => String(wt['Вид работID']) === String(id));
@@ -4463,6 +4472,9 @@ async function openCreateOperationModal() {
                 });
             }
         });
+
+        console.log('Final uniqueWorkTypes:', Array.from(uniqueWorkTypes.entries()));
+        console.log('=== End Debug ===');
 
         // Add options to select
         uniqueWorkTypes.forEach((name, id) => {
