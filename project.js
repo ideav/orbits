@@ -1318,6 +1318,15 @@ function buildFlatConstructionRows(construction, estimatePositions, rowNumber) {
                 // Use Позиция сметыID as the estimate ID since estimate positions ARE estimates
                 const estimateId = prod['Позиция сметыID'] || prod['Смета проектаID'] || '';
                 const prodId = prod['ИзделиеID'] || '?';
+
+                // Debug: Log when estimateId is empty to help diagnose issue #319
+                if (!estimateId || estimateId === '') {
+                    console.warn(`Product ${prod['Изделие']} (ID: ${prodId}) has no estimateId!`, {
+                        'Позиция сметыID': prod['Позиция сметыID'],
+                        'Смета проектаID': prod['Смета проектаID'],
+                        'All product fields': Object.keys(prod)
+                    });
+                }
                 const unitId = prod['Ед. изм ID'] || prod['ЕдИзмID'] || '';
                 html += `<td class="col-checkbox"><input type="checkbox" class="compact-checkbox" data-type="product" data-id="${prodId}" onchange="updateBulkDeleteButtonVisibility()"></td>`;
                 html += `<td class="product-cell product-cell-with-operations" title="Позиция сметыID: ${prodPositionId}">
