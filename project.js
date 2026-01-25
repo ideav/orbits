@@ -2454,6 +2454,8 @@ function hideSelectedEstimates() {
         return;
     }
 
+    const tbody = document.querySelector('.constructions-table tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
     const estimateIds = [];
 
     checkedEstimates.forEach(checkbox => {
@@ -2461,34 +2463,49 @@ function hideSelectedEstimates() {
         const constructionId = checkbox.getAttribute('data-construction-id');
         estimateIds.push(estimateId);
 
-        // Find all rows for this estimate position
-        const tbody = document.querySelector('.constructions-table tbody');
-        const rows = tbody.querySelectorAll('tr');
-
-        rows.forEach(row => {
-            // Check if this row belongs to this estimate position
-            const estimateCheckbox = row.querySelector(`input.compact-checkbox[data-type="estimate"][data-id="${estimateId}"][data-construction-id="${constructionId}"]`);
-            const productCheckbox = row.querySelector(`input.compact-checkbox[data-type="product"]`);
-
-            // If row has the estimate checkbox or is a product row in this estimate position
-            if (estimateCheckbox || (productCheckbox && row.style.display !== 'none')) {
-                // Check if this product row is within the same construction
-                const rowConstructionCheckbox = row.querySelector(`input.compact-checkbox[data-type="construction"][data-id="${constructionId}"]`);
-                if (estimateCheckbox || rowConstructionCheckbox) {
-                    row.classList.add('estimate-collapsed');
-                    row.setAttribute('data-collapsed-estimate', estimateId);
-
-                    // Add click handler to expand
-                    row.onclick = function(event) {
-                        // Prevent triggering on checkbox clicks
-                        if (event.target.type === 'checkbox') {
-                            return;
-                        }
-                        expandCollapsedRow(this);
-                    };
-                }
+        // Find the row with this estimate checkbox
+        let startRowIndex = -1;
+        for (let i = 0; i < rows.length; i++) {
+            const rowEstCheckbox = rows[i].querySelector(`input.compact-checkbox[data-type="estimate"][data-id="${estimateId}"][data-construction-id="${constructionId}"]`);
+            if (rowEstCheckbox) {
+                startRowIndex = i;
+                break;
             }
-        });
+        }
+
+        if (startRowIndex === -1) return;
+
+        // Collapse the estimate row and all product rows that follow until we hit a new estimate or construction
+        for (let i = startRowIndex; i < rows.length; i++) {
+            const row = rows[i];
+
+            // Check if this row starts a new construction
+            const hasConstructionCheckbox = row.querySelector('input.compact-checkbox[data-type="construction"]');
+            if (hasConstructionCheckbox && i > startRowIndex) {
+                // Hit a new construction, stop
+                break;
+            }
+
+            // Check if this row starts a new estimate position
+            const hasEstimateCheckbox = row.querySelector('input.compact-checkbox[data-type="estimate"]');
+            if (hasEstimateCheckbox && i > startRowIndex) {
+                // Hit a new estimate position, stop
+                break;
+            }
+
+            // This row belongs to our estimate position, collapse it
+            row.classList.add('estimate-collapsed');
+            row.setAttribute('data-collapsed-estimate', estimateId);
+
+            // Add click handler to expand
+            row.onclick = function(event) {
+                // Prevent triggering on checkbox clicks
+                if (event.target.type === 'checkbox') {
+                    return;
+                }
+                expandCollapsedRow(this);
+            };
+        }
 
         // Uncheck the checkbox
         checkbox.checked = false;
@@ -2574,51 +2591,51 @@ function restoreCollapsedState() {
     const tbody = document.querySelector('.constructions-table tbody');
     if (!tbody) return;
 
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+
     collapsedEstimates.forEach(estimateId => {
-        const rows = tbody.querySelectorAll('tr');
-
-        rows.forEach(row => {
-            // Check if this row belongs to this estimate position
-            const estimateCheckbox = row.querySelector(`input.compact-checkbox[data-type="estimate"][data-id="${estimateId}"]`);
-            const productCheckbox = row.querySelector(`input.compact-checkbox[data-type="product"]`);
-
-            if (estimateCheckbox || productCheckbox) {
-                // For product rows, verify they belong to the collapsed estimate position
-                if (productCheckbox) {
-                    // Look backwards to find the estimate cell for this product
-                    let currentRow = row;
-                    let foundEstimate = false;
-
-                    while (currentRow) {
-                        const estCheckbox = currentRow.querySelector(`input.compact-checkbox[data-type="estimate"][data-id="${estimateId}"]`);
-                        if (estCheckbox) {
-                            foundEstimate = true;
-                            break;
-                        }
-                        // If we hit a new construction or a different estimate, stop
-                        const constructionCheckbox = currentRow.querySelector(`input.compact-checkbox[data-type="construction"]`);
-                        const anyEstCheckbox = currentRow.querySelector(`input.compact-checkbox[data-type="estimate"]`);
-                        if ((constructionCheckbox && currentRow !== row) || (anyEstCheckbox && anyEstCheckbox.getAttribute('data-id') !== estimateId)) {
-                            break;
-                        }
-                        currentRow = currentRow.previousElementSibling;
-                    }
-
-                    if (!foundEstimate) return;
-                }
-
-                row.classList.add('estimate-collapsed');
-                row.setAttribute('data-collapsed-estimate', estimateId);
-
-                // Add click handler to expand
-                row.onclick = function(event) {
-                    if (event.target.type === 'checkbox') {
-                        return;
-                    }
-                    expandCollapsedRow(this);
-                };
+        // Find the row with this estimate checkbox
+        let startRowIndex = -1;
+        for (let i = 0; i < rows.length; i++) {
+            const rowEstCheckbox = rows[i].querySelector(`input.compact-checkbox[data-type="estimate"][data-id="${estimateId}"]`);
+            if (rowEstCheckbox) {
+                startRowIndex = i;
+                break;
             }
-        });
+        }
+
+        if (startRowIndex === -1) return;
+
+        // Collapse the estimate row and all product rows that follow until we hit a new estimate or construction
+        for (let i = startRowIndex; i < rows.length; i++) {
+            const row = rows[i];
+
+            // Check if this row starts a new construction
+            const hasConstructionCheckbox = row.querySelector('input.compact-checkbox[data-type="construction"]');
+            if (hasConstructionCheckbox && i > startRowIndex) {
+                // Hit a new construction, stop
+                break;
+            }
+
+            // Check if this row starts a new estimate position
+            const hasEstimateCheckbox = row.querySelector('input.compact-checkbox[data-type="estimate"]');
+            if (hasEstimateCheckbox && i > startRowIndex) {
+                // Hit a new estimate position, stop
+                break;
+            }
+
+            // This row belongs to our estimate position, collapse it
+            row.classList.add('estimate-collapsed');
+            row.setAttribute('data-collapsed-estimate', estimateId);
+
+            // Add click handler to expand
+            row.onclick = function(event) {
+                if (event.target.type === 'checkbox') {
+                    return;
+                }
+                expandCollapsedRow(this);
+            };
+        }
     });
 }
 
