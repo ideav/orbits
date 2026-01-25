@@ -3933,7 +3933,7 @@ function displayOperationsList(operations) {
         // Determine row styling based on approval status
         const isRejected = approvalStatus === 'Отклонено';
         const isApproved = approvalStatus === 'Согласовано';
-        const rowStyle = isRejected ? 'background-color: #ff8c00; color: white;' : '';
+        const rowStyle = isRejected ? 'background-color: #FFB200; color: white;' : '';
 
         // Checkbox: disabled and hidden for approved operations
         const checkboxHtml = isApproved
