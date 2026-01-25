@@ -1315,15 +1315,17 @@ function buildFlatConstructionRows(construction, estimatePositions, rowNumber) {
                 // Product checkbox and cells (using field names from API with fallbacks)
                 // First cell (Изделие) has tooltip showing which position this product belongs to
                 const prodPositionId = prod['Позиция сметыID'] || prod['Смета проектаID'] || '?';
-                // Use Позиция сметыID as the estimate ID since estimate positions ARE estimates
-                const estimateId = prod['Позиция сметыID'] || prod['Смета проектаID'] || '';
+                // Use the position's estimate ID directly since we're already in that context
+                // and products are filtered to belong to this specific position
+                const estimateId = position ? position['Позиция сметыID'] : (prod['Позиция сметыID'] || prod['Смета проектаID'] || '');
                 const prodId = prod['ИзделиеID'] || '?';
 
                 // Debug: Log when estimateId is empty to help diagnose issue #319
                 if (!estimateId || estimateId === '') {
                     console.warn(`Product ${prod['Изделие']} (ID: ${prodId}) has no estimateId!`, {
-                        'Позиция сметыID': prod['Позиция сметыID'],
-                        'Смета проектаID': prod['Смета проектаID'],
+                        'position estimateId': position ? position['Позиция сметыID'] : 'no position',
+                        'product Позиция сметыID': prod['Позиция сметыID'],
+                        'product Смета проектаID': prod['Смета проектаID'],
                         'All product fields': Object.keys(prod)
                     });
                 }
