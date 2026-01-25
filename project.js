@@ -4447,7 +4447,7 @@ async function openCreateOperationModal() {
                     // Find the work type name from workTypesReference
                     const workType = workTypesReference.find(wt => String(wt['Вид работID']) === String(id));
                     if (workType && !uniqueWorkTypes.has(id)) {
-                        uniqueWorkTypes.set(id, workType['Виды работ']);
+                        uniqueWorkTypes.set(id, workType['Вид работ']);
                     }
                 });
             }
