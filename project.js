@@ -4441,7 +4441,10 @@ async function openCreateOperationModal() {
 
         // Debug logging
         console.log('=== Debug: openCreateOperationModal ===');
+        console.log('currentOperationsContext:', currentOperationsContext);
         console.log('currentOperationsContext.estimateId:', currentOperationsContext.estimateId);
+        console.log('estimateId type:', typeof currentOperationsContext.estimateId);
+        console.log('estimateId is empty?:', !currentOperationsContext.estimateId);
         console.log('Total estimates from API:', workTypes.length);
         console.log('All estimates data:', workTypes);
 
@@ -4452,11 +4455,21 @@ async function openCreateOperationModal() {
         // Get unique work types from the current estimate only
         const uniqueWorkTypes = new Map();
 
-        // Filter to only work types from the current estimate (if estimateId is available)
-        const relevantEstimates = currentOperationsContext.estimateId
-            ? workTypes.filter(estimate => String(estimate['СметаID']) === String(currentOperationsContext.estimateId))
+        // Filter to only work types from the current estimate (if estimateId is available and not empty)
+        // Try both field names: СметаID and Позиция сметыID since different reports may use different field names
+        const hasEstimateId = currentOperationsContext.estimateId && String(currentOperationsContext.estimateId).trim() !== '';
+        console.log('hasEstimateId:', hasEstimateId);
+
+        const relevantEstimates = hasEstimateId
+            ? workTypes.filter(estimate => {
+                const estimateIdField = estimate['СметаID'] || estimate['Позиция сметыID'];
+                const match = String(estimateIdField) === String(currentOperationsContext.estimateId);
+                console.log('Checking estimate:', estimate['Смета'], 'СметаID:', estimate['СметаID'], 'Позиция сметыID:', estimate['Позиция сметыID'], 'matches:', match);
+                return match;
+            })
             : workTypes;
 
+        console.log('Filtered relevantEstimates count:', relevantEstimates.length);
         console.log('Filtered relevantEstimates:', relevantEstimates);
 
         relevantEstimates.forEach(estimate => {
