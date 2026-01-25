@@ -1274,6 +1274,14 @@
         flex: 1;
     }
 
+    .modal-footer-operations {
+        padding: 15px 20px;
+        border-top: 1px solid #dee2e6;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+
     .operations-controls {
         margin-bottom: 15px;
         display: flex;
@@ -1866,6 +1874,11 @@
                 </table>
             </div>
         </div>
+        <div class="modal-footer-operations">
+            <button class="btn btn-success" id="btnSendForApproval" onclick="sendOperationsForApproval()" title="Отправить операции на согласование заказчику">
+                Отправить на согласование
+            </button>
+        </div>
     </div>
 </div>
 
@@ -1922,6 +1935,21 @@
             <p id="progressMessage">Добавлено 0 из 0</p>
             <div class="progress" style="height: 25px;">
                 <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Approval Progress Modal -->
+<div class="modal-backdrop" id="approvalProgressModalBackdrop" style="display: none;">
+    <div class="modal-dialog-operations" onclick="event.stopPropagation()" style="max-width: 400px;">
+        <div class="modal-header-operations">
+            <h5>Отправка на согласование</h5>
+        </div>
+        <div class="modal-body-operations" style="text-align: center;">
+            <p id="approvalProgressMessage">Отправлено 0 из 0</p>
+            <div class="progress" style="height: 25px;">
+                <div id="approvalProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
             </div>
         </div>
     </div>
