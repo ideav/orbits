@@ -1203,6 +1203,9 @@ function displayConstructionsTable(data) {
 
     // Populate filter options after table is rendered
     populateFilterOptions();
+
+    // Restore collapsed estimate positions from cookies
+    restoreCollapsedState();
 }
 
 /**
@@ -2433,6 +2436,206 @@ function updateBulkDeleteButtonVisibility() {
 
     // Also update bulk add operations icon visibility when product checkboxes change
     updateBulkAddOperationsIconVisibility();
+
+    // Update bulk hide button visibility
+    updateBulkHideButtonVisibility();
+}
+
+/**
+ * Update bulk hide button visibility based on checked estimate checkboxes
+ */
+function updateBulkHideButtonVisibility() {
+    const checkedEstimates = document.querySelectorAll('.constructions-table input.compact-checkbox[data-type="estimate"]:checked');
+    const btn = document.getElementById('btnBulkHide');
+    const countSpan = document.getElementById('bulkHideCount');
+
+    if (btn && countSpan) {
+        if (checkedEstimates.length > 0) {
+            btn.classList.add('visible');
+            countSpan.textContent = `Скрыть (${checkedEstimates.length})`;
+        } else {
+            btn.classList.remove('visible');
+            countSpan.textContent = 'Скрыть';
+        }
+    }
+}
+
+/**
+ * Hide selected estimate position rows (collapse to 6px)
+ */
+function hideSelectedEstimates() {
+    const checkedEstimates = document.querySelectorAll('.constructions-table input.compact-checkbox[data-type="estimate"]:checked');
+
+    if (checkedEstimates.length === 0) {
+        return;
+    }
+
+    const estimateIds = [];
+
+    checkedEstimates.forEach(checkbox => {
+        const estimateId = checkbox.getAttribute('data-id');
+        const constructionId = checkbox.getAttribute('data-construction-id');
+        estimateIds.push(estimateId);
+
+        // Find all rows for this estimate position
+        const tbody = document.querySelector('.constructions-table tbody');
+        const rows = tbody.querySelectorAll('tr');
+
+        rows.forEach(row => {
+            // Check if this row belongs to this estimate position
+            const estimateCheckbox = row.querySelector(`input.compact-checkbox[data-type="estimate"][data-id="${estimateId}"][data-construction-id="${constructionId}"]`);
+            const productCheckbox = row.querySelector(`input.compact-checkbox[data-type="product"]`);
+
+            // If row has the estimate checkbox or is a product row in this estimate position
+            if (estimateCheckbox || (productCheckbox && row.style.display !== 'none')) {
+                // Check if this product row is within the same construction
+                const rowConstructionCheckbox = row.querySelector(`input.compact-checkbox[data-type="construction"][data-id="${constructionId}"]`);
+                if (estimateCheckbox || rowConstructionCheckbox) {
+                    row.classList.add('estimate-collapsed');
+                    row.setAttribute('data-collapsed-estimate', estimateId);
+
+                    // Add click handler to expand
+                    row.onclick = function(event) {
+                        // Prevent triggering on checkbox clicks
+                        if (event.target.type === 'checkbox') {
+                            return;
+                        }
+                        expandCollapsedRow(this);
+                    };
+                }
+            }
+        });
+
+        // Uncheck the checkbox
+        checkbox.checked = false;
+    });
+
+    // Save collapsed state to cookies
+    saveCollapsedState(estimateIds);
+
+    // Update button visibility
+    updateBulkDeleteButtonVisibility();
+    updateBulkHideButtonVisibility();
+}
+
+/**
+ * Expand a collapsed row
+ */
+function expandCollapsedRow(row) {
+    const estimateId = row.getAttribute('data-collapsed-estimate');
+    if (!estimateId) return;
+
+    // Find all rows with the same estimate ID
+    const tbody = row.closest('tbody');
+    const collapsedRows = tbody.querySelectorAll(`tr[data-collapsed-estimate="${estimateId}"]`);
+
+    collapsedRows.forEach(r => {
+        r.classList.remove('estimate-collapsed');
+        r.removeAttribute('data-collapsed-estimate');
+        r.onclick = null;
+    });
+
+    // Update collapsed state in cookies
+    const collapsedEstimates = getCollapsedEstimates().filter(id => id !== estimateId);
+    saveCollapsedState(collapsedEstimates);
+}
+
+/**
+ * Save collapsed estimate IDs to cookies
+ */
+function saveCollapsedState(estimateIds) {
+    const projectId = selectedProject ? selectedProject['ПроектID'] : '';
+    if (!projectId) return;
+
+    const cookieName = `collapsed_estimates_${projectId}`;
+    const cookieValue = JSON.stringify(estimateIds);
+    const expires = new Date();
+    expires.setTime(expires.getTime() + (365 * 24 * 60 * 60 * 1000)); // 1 year
+
+    document.cookie = `${cookieName}=${encodeURIComponent(cookieValue)}; expires=${expires.toUTCString()}; path=/`;
+}
+
+/**
+ * Get collapsed estimate IDs from cookies
+ */
+function getCollapsedEstimates() {
+    const projectId = selectedProject ? selectedProject['ПроектID'] : '';
+    if (!projectId) return [];
+
+    const cookieName = `collapsed_estimates_${projectId}`;
+    const cookies = document.cookie.split(';');
+
+    for (let cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === cookieName) {
+            try {
+                return JSON.parse(decodeURIComponent(value));
+            } catch (e) {
+                console.error('Error parsing collapsed estimates cookie:', e);
+                return [];
+            }
+        }
+    }
+
+    return [];
+}
+
+/**
+ * Restore collapsed estimate positions from cookies
+ */
+function restoreCollapsedState() {
+    const collapsedEstimates = getCollapsedEstimates();
+    if (collapsedEstimates.length === 0) return;
+
+    const tbody = document.querySelector('.constructions-table tbody');
+    if (!tbody) return;
+
+    collapsedEstimates.forEach(estimateId => {
+        const rows = tbody.querySelectorAll('tr');
+
+        rows.forEach(row => {
+            // Check if this row belongs to this estimate position
+            const estimateCheckbox = row.querySelector(`input.compact-checkbox[data-type="estimate"][data-id="${estimateId}"]`);
+            const productCheckbox = row.querySelector(`input.compact-checkbox[data-type="product"]`);
+
+            if (estimateCheckbox || productCheckbox) {
+                // For product rows, verify they belong to the collapsed estimate position
+                if (productCheckbox) {
+                    // Look backwards to find the estimate cell for this product
+                    let currentRow = row;
+                    let foundEstimate = false;
+
+                    while (currentRow) {
+                        const estCheckbox = currentRow.querySelector(`input.compact-checkbox[data-type="estimate"][data-id="${estimateId}"]`);
+                        if (estCheckbox) {
+                            foundEstimate = true;
+                            break;
+                        }
+                        // If we hit a new construction or a different estimate, stop
+                        const constructionCheckbox = currentRow.querySelector(`input.compact-checkbox[data-type="construction"]`);
+                        const anyEstCheckbox = currentRow.querySelector(`input.compact-checkbox[data-type="estimate"]`);
+                        if ((constructionCheckbox && currentRow !== row) || (anyEstCheckbox && anyEstCheckbox.getAttribute('data-id') !== estimateId)) {
+                            break;
+                        }
+                        currentRow = currentRow.previousElementSibling;
+                    }
+
+                    if (!foundEstimate) return;
+                }
+
+                row.classList.add('estimate-collapsed');
+                row.setAttribute('data-collapsed-estimate', estimateId);
+
+                // Add click handler to expand
+                row.onclick = function(event) {
+                    if (event.target.type === 'checkbox') {
+                        return;
+                    }
+                    expandCollapsedRow(this);
+                };
+            }
+        });
+    });
 }
 
 /**
