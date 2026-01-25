@@ -1323,22 +1323,6 @@ function buildFlatConstructionRows(construction, estimatePositions, rowNumber) {
                 // Fixed: Check if position exists AND has the field (not just if position exists)
                 const estimateId = (position && position['Позиция сметыID']) || prod['Позиция сметыID'] || prod['Смета проектаID'] || '';
                 const prodId = prod['ИзделиеID'] || '?';
-
-                // Debug: Log estimateId assignment for issue #321
-                console.log(`[Issue #321 Debug] Product: ${prod['Изделие']} (ID: ${prodId}):`,{
-                    'estimateId assigned': estimateId,
-                    'position?.Позиция сметыID': position ? position['Позиция сметыID'] : 'no position',
-                    'prod.Позиция сметыID': prod['Позиция сметыID'],
-                    'prod.Смета проектаID': prod['Смета проектаID']
-                });
-                if (!estimateId || estimateId === '') {
-                    console.warn(`Product ${prod['Изделие']} (ID: ${prodId}) has no estimateId!`, {
-                        'position estimateId': position ? position['Позиция сметыID'] : 'no position',
-                        'product Позиция сметыID': prod['Позиция сметыID'],
-                        'product Смета проектаID': prod['Смета проектаID'],
-                        'All product fields': Object.keys(prod)
-                    });
-                }
                 const unitId = prod['Ед. изм ID'] || prod['ЕдИзмID'] || '';
                 html += `<td class="col-checkbox"><input type="checkbox" class="compact-checkbox" data-type="product" data-id="${prodId}" onchange="updateBulkDeleteButtonVisibility()"></td>`;
                 html += `<td class="product-cell product-cell-with-operations" title="Позиция сметыID: ${prodPositionId}">
@@ -3779,11 +3763,23 @@ function applyFilters() {
 
     const rows = Array.from(tbody.querySelectorAll('tr'));
 
+    // Trace filter state
+    console.group('🔍 Фильтрация таблицы');
+    console.log('Фильтр по Позиция сметы:', estimateFilterState.selectedValues.size > 0
+        ? Array.from(estimateFilterState.selectedValues).join(', ')
+        : '(не активен)');
+    console.log('Фильтр по Изделие:', productFilterState.selectedValues.size > 0
+        ? Array.from(productFilterState.selectedValues).join(', ')
+        : '(не активен)');
+    console.log('Всего строк в таблице:', rows.length);
+
     // Track current estimate position value for rows without estimate cells (rowspan handling)
     let currentEstimateValue = null;
     let currentConstructionVisible = true;
+    let visibleRowCount = 0;
+    let hiddenRowCount = 0;
 
-    rows.forEach(row => {
+    rows.forEach((row, rowIndex) => {
         let shouldShowRow = true;
 
         // Check if this row starts a new construction
@@ -3835,8 +3831,10 @@ function applyFilters() {
         if (shouldShowRow) {
             row.style.display = '';
             currentConstructionVisible = true;
+            visibleRowCount++;
         } else {
             row.style.display = 'none';
+            hiddenRowCount++;
 
             // Reset checkboxes on hidden rows
             const checkboxes = row.querySelectorAll('input.compact-checkbox[data-type]');
@@ -3845,6 +3843,9 @@ function applyFilters() {
             });
         }
     });
+
+    console.log(`Результат первого прохода: ${visibleRowCount} видимых, ${hiddenRowCount} скрытых`);
+
 
     // Second pass: ensure rows with rowspan cells remain visible if they have visible children
     // This prevents table structure from breaking when first row of a rowspan group is hidden
@@ -3892,6 +3893,11 @@ function applyFilters() {
     // Update bulk delete and add buttons visibility after filtering
     updateBulkDeleteButtonVisibility();
     updateBulkAddIconVisibility();
+
+    // Count final visible rows
+    const finalVisibleRows = rows.filter(r => r.style.display !== 'none').length;
+    console.log(`Итого после второго прохода и настройки rowspan: ${finalVisibleRows} видимых строк`);
+    console.groupEnd();
 }
 
 // Adjust rowspan values for cells after filtering to account for hidden rows
@@ -4150,17 +4156,6 @@ function showOperationsModal(event, button) {
     const estimatePositionId = button.getAttribute('data-estimate-position-id');
     const estimateId = button.getAttribute('data-estimate-id');
 
-    console.log('[Issue #321 Debug] showOperationsModal called for product:', productName, {
-        'productId': productId,
-        'estimateId from button': estimateId,
-        'estimatePositionId from button': estimatePositionId,
-        'all button data attributes': {
-            'data-product-id': button.getAttribute('data-product-id'),
-            'data-estimate-id': button.getAttribute('data-estimate-id'),
-            'data-estimate-position-id': button.getAttribute('data-estimate-position-id')
-        }
-    });
-
     currentOperationsProductId = productId;
     currentOperationsContext = {
         productId: productId,
@@ -4168,8 +4163,6 @@ function showOperationsModal(event, button) {
         estimatePositionId: estimatePositionId,
         estimateId: estimateId
     };
-
-    console.log('[Issue #321 Debug] currentOperationsContext set to:', currentOperationsContext);
 
     // Filter operations for this product
     const productOperations = operationsData.filter(op => String(op['ИзделиеID']) === String(productId));
