@@ -1135,6 +1135,42 @@
         font-size: 14px;
     }
 
+    /* Bulk hide button */
+    .btn-bulk-hide {
+        display: none;
+        background: #ffc107;
+        color: #212529;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        align-items: center;
+        gap: 5px;
+        margin-right: 10px;
+    }
+
+    .btn-bulk-hide:hover {
+        background: #e0a800;
+    }
+
+    .btn-bulk-hide.visible {
+        display: inline-flex;
+    }
+
+    /* Collapsed estimate position rows */
+    .estimate-collapsed {
+        height: 6px !important;
+        overflow: hidden;
+        cursor: pointer;
+    }
+
+    .estimate-collapsed td {
+        padding: 0 !important;
+        height: 6px !important;
+        border-bottom: 1px solid #ddd;
+    }
+
     /* Delete progress modal */
     .delete-progress-container {
         text-align: center;
@@ -1541,6 +1577,10 @@
                     <label><input type="checkbox" data-col="etazh" checked onchange="toggleColumn('etazh', this.checked)"> Этаж</label>
                     <label><input type="checkbox" id="toggleProductDetails" checked onchange="toggleProductDetailsColumns(this.checked)"> Детали изделий</label>
                 </div>
+                <button class="btn-bulk-hide btn-sm" id="btnBulkHide" onclick="hideSelectedEstimates()">
+                    <span>👁</span>
+                    <span id="bulkHideCount">Скрыть</span>
+                </button>
                 <button class="btn-bulk-delete btn-sm " id="btnBulkDelete" onclick="showBulkDeleteConfirmation()">
                     <span class="delete-icon">🗑</span>
                     <span id="bulkDeleteCount">Удалить</span>
