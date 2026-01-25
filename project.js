@@ -1317,7 +1317,8 @@ function buildFlatConstructionRows(construction, estimatePositions, rowNumber) {
                 const prodPositionId = prod['Позиция сметыID'] || prod['Смета проектаID'] || '?';
                 // Use the position's estimate ID directly since we're already in that context
                 // and products are filtered to belong to this specific position
-                const estimateId = position ? position['Позиция сметыID'] : (prod['Позиция сметыID'] || prod['Смета проектаID'] || '');
+                // Fixed: Check if position exists AND has the field (not just if position exists)
+                const estimateId = (position && position['Позиция сметыID']) || prod['Позиция сметыID'] || prod['Смета проектаID'] || '';
                 const prodId = prod['ИзделиеID'] || '?';
 
                 // Debug: Log estimateId assignment for issue #321
