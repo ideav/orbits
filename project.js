@@ -1315,9 +1315,20 @@ function buildFlatConstructionRows(construction, estimatePositions, rowNumber) {
                 // Product checkbox and cells (using field names from API with fallbacks)
                 // First cell (Изделие) has tooltip showing which position this product belongs to
                 const prodPositionId = prod['Позиция сметыID'] || prod['Смета проектаID'] || '?';
-                // Use Позиция сметыID as the estimate ID since estimate positions ARE estimates
-                const estimateId = prod['Позиция сметыID'] || prod['Смета проектаID'] || '';
+                // Use the position's estimate ID directly since we're already in that context
+                // and products are filtered to belong to this specific position
+                const estimateId = position ? position['Позиция сметыID'] : (prod['Позиция сметыID'] || prod['Смета проектаID'] || '');
                 const prodId = prod['ИзделиеID'] || '?';
+
+                // Debug: Log when estimateId is empty to help diagnose issue #319
+                if (!estimateId || estimateId === '') {
+                    console.warn(`Product ${prod['Изделие']} (ID: ${prodId}) has no estimateId!`, {
+                        'position estimateId': position ? position['Позиция сметыID'] : 'no position',
+                        'product Позиция сметыID': prod['Позиция сметыID'],
+                        'product Смета проектаID': prod['Смета проектаID'],
+                        'All product fields': Object.keys(prod)
+                    });
+                }
                 const unitId = prod['Ед. изм ID'] || prod['ЕдИзмID'] || '';
                 html += `<td class="col-checkbox"><input type="checkbox" class="compact-checkbox" data-type="product" data-id="${prodId}" onchange="updateBulkDeleteButtonVisibility()"></td>`;
                 html += `<td class="product-cell product-cell-with-operations" title="Позиция сметыID: ${prodPositionId}">
@@ -4439,6 +4450,15 @@ async function openCreateOperationModal() {
 
         const workTypes = await response.json();
 
+        // Debug logging
+        console.log('=== Debug: openCreateOperationModal ===');
+        console.log('currentOperationsContext:', currentOperationsContext);
+        console.log('currentOperationsContext.estimateId:', currentOperationsContext.estimateId);
+        console.log('estimateId type:', typeof currentOperationsContext.estimateId);
+        console.log('estimateId is empty?:', !currentOperationsContext.estimateId);
+        console.log('Total estimates from API:', workTypes.length);
+        console.log('All estimates data:', workTypes);
+
         // Populate work types dropdown
         const workTypesSelect = document.getElementById('operationWorkTypes');
         workTypesSelect.innerHTML = '';
@@ -4446,14 +4466,26 @@ async function openCreateOperationModal() {
         // Get unique work types from the current estimate only
         const uniqueWorkTypes = new Map();
 
-        // Filter to only work types from the current estimate (if estimateId is available)
-        const relevantEstimates = currentOperationsContext.estimateId
-            ? workTypes.filter(estimate => String(estimate['СметаID']) === String(currentOperationsContext.estimateId))
+        // Filter to only work types from the current estimate (if estimateId is available and not empty)
+        // Note: estimateId comes from product's Позиция сметыID field and should match estimate's СметаID field
+        const hasEstimateId = currentOperationsContext.estimateId && String(currentOperationsContext.estimateId).trim() !== '';
+        console.log('hasEstimateId:', hasEstimateId);
+
+        const relevantEstimates = hasEstimateId
+            ? workTypes.filter(estimate => {
+                const match = String(estimate['СметаID']) === String(currentOperationsContext.estimateId);
+                console.log('Checking estimate:', estimate['Смета'], 'СметаID:', estimate['СметаID'], 'currentEstimateId:', currentOperationsContext.estimateId, 'match:', match);
+                return match;
+            })
             : workTypes;
+
+        console.log('Filtered relevantEstimates count:', relevantEstimates.length);
+        console.log('Filtered relevantEstimates:', relevantEstimates);
 
         relevantEstimates.forEach(estimate => {
             if (estimate['Виды работ']) {
                 const workTypeIds = estimate['Виды работ'].split(',').filter(Boolean);
+                console.log('Estimate:', estimate['Смета'], 'СметаID:', estimate['СметаID'], 'Work type IDs:', workTypeIds);
                 workTypeIds.forEach(id => {
                     // Find the work type name from workTypesReference
                     const workType = workTypesReference.find(wt => String(wt['Вид работID']) === String(id));
@@ -4463,6 +4495,9 @@ async function openCreateOperationModal() {
                 });
             }
         });
+
+        console.log('Final uniqueWorkTypes:', Array.from(uniqueWorkTypes.entries()));
+        console.log('=== End Debug ===');
 
         // Add options to select
         uniqueWorkTypes.forEach((name, id) => {
