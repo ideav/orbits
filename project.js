@@ -3658,22 +3658,41 @@ function adjustRowspansAfterFilter() {
 
     const rows = Array.from(tbody.querySelectorAll('tr'));
 
-    // For each row, check cells with rowspan and adjust based on visible rows
-    rows.forEach((row, rowIndex) => {
-        const cells = row.querySelectorAll('td[rowspan], td.row-number, td.construction-cell, td.estimate-cell');
+    // Check if any filters are active
+    const hasActiveFilters = estimateFilterState.selectedValues.size > 0 || productFilterState.selectedValues.size > 0;
 
-        cells.forEach(cell => {
-            // Get or restore original rowspan
-            if (!cell.dataset.originalRowspan) {
-                const currentRowspan = cell.getAttribute('rowspan');
-                if (currentRowspan) {
-                    cell.dataset.originalRowspan = currentRowspan;
+    // If no filters are active, restore all original rowspans
+    if (!hasActiveFilters) {
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('td[data-original-rowspan]');
+            cells.forEach(cell => {
+                const originalRowspan = cell.getAttribute('data-original-rowspan');
+                if (originalRowspan && originalRowspan !== '1') {
+                    cell.setAttribute('rowspan', originalRowspan);
                 } else {
-                    cell.dataset.originalRowspan = '1';
+                    cell.removeAttribute('rowspan');
                 }
+                cell.style.display = '';
+            });
+        });
+        return;
+    }
+
+    // Process only visible rows when filters are active
+    rows.forEach((row, rowIndex) => {
+        // Skip hidden rows
+        if (row.style.display === 'none') return;
+
+        // Find cells with rowspan in this visible row
+        const cellsWithRowspan = row.querySelectorAll('td[rowspan]');
+
+        cellsWithRowspan.forEach(cell => {
+            // Store original rowspan on first encounter
+            if (!cell.hasAttribute('data-original-rowspan')) {
+                cell.setAttribute('data-original-rowspan', cell.getAttribute('rowspan'));
             }
 
-            const originalRowspan = parseInt(cell.dataset.originalRowspan);
+            const originalRowspan = parseInt(cell.getAttribute('data-original-rowspan'));
 
             // Count visible rows in the original rowspan range
             let visibleCount = 0;
@@ -3686,13 +3705,8 @@ function adjustRowspansAfterFilter() {
             // Update rowspan based on visible rows
             if (visibleCount > 1) {
                 cell.setAttribute('rowspan', visibleCount);
-                cell.style.display = '';
             } else if (visibleCount === 1) {
                 cell.removeAttribute('rowspan');
-                cell.style.display = '';
-            } else {
-                // No visible rows in range - hide the cell
-                cell.style.display = 'none';
             }
         });
     });
