@@ -3914,6 +3914,15 @@ function showOperationsModal(event, button) {
     // Populate operations list
     displayOperationsList(productOperations);
 
+    // Hide "Send for approval" button if required fields are not filled (button is gray)
+    const sendApprovalButton = document.getElementById('btnSendForApproval');
+    if (sendApprovalButton) {
+        const buttonBgColor = button.style.backgroundColor || window.getComputedStyle(button).backgroundColor;
+        // Check if button is gray (rgb(211, 211, 211) is #d3d3d3)
+        const isGrayButton = buttonBgColor === 'rgb(211, 211, 211)' || buttonBgColor === '#d3d3d3';
+        sendApprovalButton.style.display = isGrayButton ? 'none' : 'inline-block';
+    }
+
     // Show modal
     const modal = document.getElementById('operationsModalBackdrop');
     if (modal) {
@@ -3940,6 +3949,7 @@ function displayOperationsList(operations) {
         const operationId = op['ОперацияID'] || op['ОперацииID'];
         const operationName = op['Операция'] || '—';
         const workTypeId = op['Вид работID'] || '';
+        const approvalStatus = op['Согласование'] || '';
 
         // Find work type info from reference
         let workTypeName = '—';
@@ -3953,10 +3963,26 @@ function displayOperationsList(operations) {
             }
         }
 
+        // Determine row styling based on approval status
+        const isRejected = approvalStatus === 'Отклонено';
+        const isApproved = approvalStatus === 'Согласовано';
+        const rowStyle = isRejected ? 'background-color: #ff8c00; color: white;' : '';
+
+        // Checkbox: disabled and hidden for approved operations
+        const checkboxHtml = isApproved
+            ? '<input type="checkbox" class="compact-checkbox operation-checkbox" disabled style="visibility: hidden;" data-operation-id="' + operationId + '">'
+            : '<input type="checkbox" class="compact-checkbox operation-checkbox" data-operation-id="' + operationId + '" onchange="updateOperationsDeleteButton()">';
+
+        // Delete button: hidden for approved operations
+        const deleteButtonHtml = isApproved
+            ? ''
+            : '<button class="btn-delete-operation" onclick="deleteOperation(\'' + operationId + '\')" title="Удалить операцию"><span class="delete-icon">🗑</span></button>';
+
         const tr = document.createElement('tr');
+        tr.style.cssText = rowStyle;
         tr.innerHTML = `
             <td class="col-checkbox">
-                <input type="checkbox" class="compact-checkbox operation-checkbox" data-operation-id="${operationId}" onchange="updateOperationsDeleteButton()">
+                ${checkboxHtml}
             </td>
             <td class="operation-number">${index + 1}</td>
             <td class="operation-name">
@@ -3964,9 +3990,7 @@ function displayOperationsList(operations) {
                 <div class="operation-name-sub">${escapeHtml(directionName)} | ${escapeHtml(workTypeName)}</div>
             </td>
             <td class="operation-actions">
-                <button class="btn-delete-operation" onclick="deleteOperation('${operationId}')" title="Удалить операцию">
-                    <span class="delete-icon">🗑</span>
-                </button>
+                ${deleteButtonHtml}
             </td>
         `;
         tbody.appendChild(tr);
