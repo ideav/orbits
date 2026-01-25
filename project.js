@@ -4893,6 +4893,18 @@ async function confirmBulkAddOperations() {
         productType: cb.getAttribute('data-product-type') || ''
     }));
 
+    // CRITICAL FIX for issue #328: Save products BEFORE closing modal
+    // closeBulkOperationsModal() sets bulkOperationsContext = null,
+    // so we must extract products first
+    const products = bulkOperationsContext.products;
+
+    // Safety check: Ensure products array exists
+    if (!products || !Array.isArray(products) || products.length === 0) {
+        console.error('No products in bulk operations context');
+        alert('Ошибка: не найдены выбранные изделия');
+        return;
+    }
+
     // Close add operations modal
     closeBulkOperationsModal();
 
@@ -4904,8 +4916,6 @@ async function confirmBulkAddOperations() {
     if (progressModal) {
         progressModal.style.display = 'flex';
     }
-
-    const products = bulkOperationsContext.products;
     let completed = 0;
     const totalOperations = operations.length * products.length;
 
