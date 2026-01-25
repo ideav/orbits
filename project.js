@@ -4018,8 +4018,8 @@ function deleteSelectedOperations() {
  * Send operations for approval
  */
 async function sendOperationsForApproval() {
-    // Get checked operations
-    const checkedCheckboxes = document.querySelectorAll('.operation-checkbox:checked');
+    // Get checked operations (excluding disabled ones for approved operations)
+    const checkedCheckboxes = document.querySelectorAll('.operation-checkbox:checked:not(:disabled)');
 
     // Determine which operations to send
     let operationsToSend;
@@ -4030,8 +4030,8 @@ async function sendOperationsForApproval() {
             checkbox: cb
         }));
     } else {
-        // Send all operations
-        const allCheckboxes = document.querySelectorAll('.operation-checkbox');
+        // Send all operations (excluding disabled ones for approved operations)
+        const allCheckboxes = document.querySelectorAll('.operation-checkbox:not(:disabled)');
         operationsToSend = Array.from(allCheckboxes).map(cb => ({
             id: cb.getAttribute('data-operation-id'),
             checkbox: cb
