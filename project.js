@@ -32,7 +32,7 @@ let currentProductAddContext = null; // {constructionId, estimatePositionId}
 // Operations data
 let operationsData = []; // Data from report/5977
 let currentOperationsProductId = null; // Currently viewed product's operations
-let currentOperationsContext = null; // {productId, productName, estimatePositionId}
+let currentOperationsContext = null; // {productId, productName, estimatePositionId, estimateId}
 
 /**
  * Initialize the project workspace
@@ -1315,6 +1315,7 @@ function buildFlatConstructionRows(construction, estimatePositions, rowNumber) {
                 // Product checkbox and cells (using field names from API with fallbacks)
                 // First cell (Изделие) has tooltip showing which position this product belongs to
                 const prodPositionId = prod['Позиция сметыID'] || prod['Смета проектаID'] || '?';
+                const estimateId = prod['Смета проектаID'] || '';
                 const prodId = prod['ИзделиеID'] || '?';
                 const unitId = prod['Ед. изм ID'] || prod['ЕдИзмID'] || '';
                 html += `<td class="col-checkbox"><input type="checkbox" class="compact-checkbox" data-type="product" data-id="${prodId}" onchange="updateBulkDeleteButtonVisibility()"></td>`;
@@ -1326,6 +1327,7 @@ function buildFlatConstructionRows(construction, estimatePositions, rowNumber) {
                         data-construction="${escapeHtml(construction['Конструкция'] || '')}"
                         data-estimate-position="${escapeHtml(position['Позиция сметы'] || '')}"
                         data-estimate-position-id="${prodPositionId}"
+                        data-estimate-id="${estimateId}"
                         data-zahvatka="${escapeHtml(construction['Захватка'] || '')}"
                         data-osi="${escapeHtml(construction['Оси'] || '')}"
                         data-vysotnie-otmetki="${escapeHtml(construction['Высотные отметки'] || '')}"
@@ -3853,12 +3855,14 @@ function showOperationsModal(event, button) {
     const construction = button.getAttribute('data-construction');
     const estimatePosition = button.getAttribute('data-estimate-position');
     const estimatePositionId = button.getAttribute('data-estimate-position-id');
+    const estimateId = button.getAttribute('data-estimate-id');
 
     currentOperationsProductId = productId;
     currentOperationsContext = {
         productId: productId,
         productName: productName,
-        estimatePositionId: estimatePositionId
+        estimatePositionId: estimatePositionId,
+        estimateId: estimateId
     };
 
     // Filter operations for this product
@@ -4438,9 +4442,15 @@ async function openCreateOperationModal() {
         const workTypesSelect = document.getElementById('operationWorkTypes');
         workTypesSelect.innerHTML = '';
 
-        // Get unique work types from the estimate
+        // Get unique work types from the current estimate only
         const uniqueWorkTypes = new Map();
-        workTypes.forEach(estimate => {
+
+        // Filter to only work types from the current estimate (if estimateId is available)
+        const relevantEstimates = currentOperationsContext.estimateId
+            ? workTypes.filter(estimate => String(estimate['СметаID']) === String(currentOperationsContext.estimateId))
+            : workTypes;
+
+        relevantEstimates.forEach(estimate => {
             if (estimate['Виды работ']) {
                 const workTypeIds = estimate['Виды работ'].split(',').filter(Boolean);
                 workTypeIds.forEach(id => {
