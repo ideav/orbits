@@ -4024,6 +4024,143 @@ function deleteSelectedOperations() {
 }
 
 /**
+ * Send operations for approval
+ */
+async function sendOperationsForApproval() {
+    // Get checked operations
+    const checkedCheckboxes = document.querySelectorAll('.operation-checkbox:checked');
+
+    // Determine which operations to send
+    let operationsToSend;
+    if (checkedCheckboxes.length > 0) {
+        // Send only checked operations
+        operationsToSend = Array.from(checkedCheckboxes).map(cb => ({
+            id: cb.getAttribute('data-operation-id'),
+            checkbox: cb
+        }));
+    } else {
+        // Send all operations
+        const allCheckboxes = document.querySelectorAll('.operation-checkbox');
+        operationsToSend = Array.from(allCheckboxes).map(cb => ({
+            id: cb.getAttribute('data-operation-id'),
+            checkbox: cb
+        }));
+    }
+
+    if (operationsToSend.length === 0) {
+        alert('Нет операций для отправки на согласование');
+        return;
+    }
+
+    // Show confirmation dialog
+    const confirmMessage = `Вы хотите отправить операции на согласование заказчику?${checkedCheckboxes.length > 0 ? ` (${checkedCheckboxes.length} операций)` : ` (все ${operationsToSend.length} операций)`}`;
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+
+    // Hide operations modal and show progress modal
+    const operationsModal = document.getElementById('operationsModalBackdrop');
+    const progressModal = document.getElementById('approvalProgressModalBackdrop');
+    const progressMessage = document.getElementById('approvalProgressMessage');
+    const progressBar = document.getElementById('approvalProgressBar');
+
+    if (operationsModal) {
+        operationsModal.style.display = 'none';
+    }
+
+    if (progressModal) {
+        progressModal.style.display = 'flex';
+    }
+
+    let completed = 0;
+    const total = operationsToSend.length;
+    const successfulIds = [];
+
+    // Update progress
+    function updateProgress() {
+        if (progressMessage) {
+            progressMessage.textContent = `Отправлено ${completed} из ${total}`;
+        }
+        if (progressBar) {
+            const percentage = (completed / total) * 100;
+            progressBar.style.width = `${percentage}%`;
+        }
+    }
+
+    updateProgress();
+
+    // Send for approval sequentially
+    for (const operation of operationsToSend) {
+        try {
+            const url = `https://${window.location.host}/${db}/_m_set/${operation.id}?JSON&t7447=7448`;
+
+            const formData = new URLSearchParams();
+            formData.append('_xsrf', xsrf);
+
+            const response = await fetch(url, {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: formData.toString()
+            });
+
+            if (!response.ok) {
+                console.error(`HTTP error sending operation ${operation.id} for approval: ${response.status}`);
+            } else {
+                const result = await response.json();
+                if (result.error) {
+                    console.error(`Error sending operation ${operation.id} for approval:`, result.error);
+                    alert(`Ошибка: ${result.error}`);
+                } else {
+                    successfulIds.push(operation.id);
+                }
+            }
+        } catch (error) {
+            console.error(`Error sending operation ${operation.id} for approval:`, error);
+        }
+
+        completed++;
+        updateProgress();
+    }
+
+    // Close progress modal
+    if (progressModal) {
+        progressModal.style.display = 'none';
+    }
+
+    // Hide checkboxes and delete buttons for successful operations
+    successfulIds.forEach(operationId => {
+        const checkbox = document.querySelector(`.operation-checkbox[data-operation-id="${operationId}"]`);
+        const deleteButton = checkbox ? checkbox.closest('tr').querySelector('.btn-delete-operation') : null;
+
+        if (checkbox) {
+            checkbox.style.visibility = 'hidden';
+        }
+        if (deleteButton) {
+            deleteButton.style.visibility = 'hidden';
+        }
+    });
+
+    // Reload operations data
+    await reloadOperationsData();
+
+    // Show operations modal again
+    if (operationsModal) {
+        operationsModal.style.display = 'flex';
+    }
+
+    if (successfulIds.length === total) {
+        alert(`Все операции (${total}) успешно отправлены на согласование`);
+    } else if (successfulIds.length > 0) {
+        alert(`Отправлено ${successfulIds.length} из ${total} операций`);
+    } else {
+        alert('Не удалось отправить операции на согласование');
+    }
+}
+
+/**
  * Delete operations sequentially (one by one)
  */
 function deleteOperationsSequentially(operationIds, index) {
