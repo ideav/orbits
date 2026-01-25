@@ -1317,10 +1317,17 @@ function buildFlatConstructionRows(construction, estimatePositions, rowNumber) {
                 const prodPositionId = prod['Позиция сметыID'] || prod['Смета проектаID'] || '?';
                 // Use the position's estimate ID directly since we're already in that context
                 // and products are filtered to belong to this specific position
-                const estimateId = position ? position['Позиция сметыID'] : (prod['Позиция сметыID'] || prod['Смета проектаID'] || '');
+                // Fixed: Check if position exists AND has the field (not just if position exists)
+                const estimateId = (position && position['Позиция сметыID']) || prod['Позиция сметыID'] || prod['Смета проектаID'] || '';
                 const prodId = prod['ИзделиеID'] || '?';
 
-                // Debug: Log when estimateId is empty to help diagnose issue #319
+                // Debug: Log estimateId assignment for issue #321
+                console.log(`[Issue #321 Debug] Product: ${prod['Изделие']} (ID: ${prodId}):`,{
+                    'estimateId assigned': estimateId,
+                    'position?.Позиция сметыID': position ? position['Позиция сметыID'] : 'no position',
+                    'prod.Позиция сметыID': prod['Позиция сметыID'],
+                    'prod.Смета проектаID': prod['Смета проектаID']
+                });
                 if (!estimateId || estimateId === '') {
                     console.warn(`Product ${prod['Изделие']} (ID: ${prodId}) has no estimateId!`, {
                         'position estimateId': position ? position['Позиция сметыID'] : 'no position',
@@ -3869,6 +3876,17 @@ function showOperationsModal(event, button) {
     const estimatePositionId = button.getAttribute('data-estimate-position-id');
     const estimateId = button.getAttribute('data-estimate-id');
 
+    console.log('[Issue #321 Debug] showOperationsModal called for product:', productName, {
+        'productId': productId,
+        'estimateId from button': estimateId,
+        'estimatePositionId from button': estimatePositionId,
+        'all button data attributes': {
+            'data-product-id': button.getAttribute('data-product-id'),
+            'data-estimate-id': button.getAttribute('data-estimate-id'),
+            'data-estimate-position-id': button.getAttribute('data-estimate-position-id')
+        }
+    });
+
     currentOperationsProductId = productId;
     currentOperationsContext = {
         productId: productId,
@@ -3876,6 +3894,8 @@ function showOperationsModal(event, button) {
         estimatePositionId: estimatePositionId,
         estimateId: estimateId
     };
+
+    console.log('[Issue #321 Debug] currentOperationsContext set to:', currentOperationsContext);
 
     // Filter operations for this product
     const productOperations = operationsData.filter(op => String(op['ИзделиеID']) === String(productId));
@@ -4470,14 +4490,28 @@ async function openCreateOperationModal() {
         // Note: estimateId comes from product's Позиция сметыID field and should match estimate's СметаID field
         const hasEstimateId = currentOperationsContext.estimateId && String(currentOperationsContext.estimateId).trim() !== '';
         console.log('hasEstimateId:', hasEstimateId);
+        console.log('estimateId value:', currentOperationsContext.estimateId);
+        console.log('estimateId as string:', String(currentOperationsContext.estimateId));
+        console.log('estimateId trimmed:', String(currentOperationsContext.estimateId).trim());
 
         const relevantEstimates = hasEstimateId
             ? workTypes.filter(estimate => {
-                const match = String(estimate['СметаID']) === String(currentOperationsContext.estimateId);
-                console.log('Checking estimate:', estimate['Смета'], 'СметаID:', estimate['СметаID'], 'currentEstimateId:', currentOperationsContext.estimateId, 'match:', match);
+                const estimateIdStr = String(estimate['СметаID']);
+                const contextIdStr = String(currentOperationsContext.estimateId);
+                const match = estimateIdStr === contextIdStr;
+                console.log('Checking estimate:', estimate['Смета'],
+                    'СметаID:', estimate['СметаID'], '(str:', estimateIdStr, ')',
+                    'currentEstimateId:', currentOperationsContext.estimateId, '(str:', contextIdStr, ')',
+                    'match:', match);
                 return match;
             })
             : workTypes;
+
+        console.log('Total workTypes rows:', workTypes.length);
+        console.log('Filter active (hasEstimateId):', hasEstimateId);
+        if (!hasEstimateId) {
+            console.warn('WARNING: No estimateId, showing ALL work types from ALL estimates!');
+        }
 
         console.log('Filtered relevantEstimates count:', relevantEstimates.length);
         console.log('Filtered relevantEstimates:', relevantEstimates);

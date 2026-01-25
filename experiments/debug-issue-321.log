@@ -1,0 +1,10 @@
+=== Debugging Issue #321 ===
+
+Fetching report/6631 (work types by estimate)...
+Fetching: https://integram.io/integram/report/6631?JSON_KV&FR_ProjectID=7213
+Error: SyntaxError: Unexpected token 'i', "integram d"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at IncomingMessage.<anonymous> (/tmp/gh-issue-solver-1769356691743/experiments/debug-issue-321.js:27:39)
+    at IncomingMessage.emit (node:events:536:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21)
