@@ -5760,6 +5760,15 @@ async function confirmBulkAddOperations() {
                 formData.append('t702', operation.id);
                 formData.append('_xsrf', xsrf);
 
+                // Issue #402: Look up ИзделиеID from report/7202 by product name
+                if (productData && productData['Изделие'] && allProductsReference) {
+                    const productName = productData['Изделие'];
+                    const productRef = allProductsReference.find(ref => ref['Изделие'] === productName);
+                    if (productRef && productRef['ИзделиеID']) {
+                        formData.append('t6700', productRef['ИзделиеID']);
+                    }
+                }
+
                 const response = await fetch(url, {
                     method: 'POST',
                     credentials: 'include',
