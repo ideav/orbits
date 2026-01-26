@@ -2212,13 +2212,16 @@ function applyProductDetailsVisibility() {
 
 /**
  * Populate the product selector dropdown
+ * @param {Array} productsToShow - Optional filtered list of products to show. If not provided, shows all products.
  */
-function populateProductSelector() {
+function populateProductSelector(productsToShow = null) {
     const select = document.getElementById('productSelectorList');
     if (!select) return;
 
+    const products = productsToShow || allProductsReference;
+
     select.innerHTML = '';
-    allProductsReference.forEach(product => {
+    products.forEach(product => {
         const option = document.createElement('option');
         option.value = product['ИзделиеID'] || product['ID'] || '';
         option.textContent = product['Изделие'] || product['Название'] || 'Без названия';
@@ -2241,56 +2244,139 @@ function showProductSelector(event, constructionId, estimatePositionId) {
     const selector = document.getElementById('productSelector');
     if (!selector) return;
 
-    // Reset search and show first to get proper dimensions
-    const searchInput = document.getElementById('productSelectorSearch');
-    if (searchInput) searchInput.value = '';
-    filterProductSelector();
-    selector.classList.remove('hidden');
+    // Load available operations for this estimate position to filter products
+    const operationsUrl = `https://${window.location.host}/${db}/report/7273?JSON_KV&FR_SID=${estimatePositionId}`;
 
-    // Position near the click, ensuring it stays within viewport
-    const rect = event.target.getBoundingClientRect();
-    selector.style.position = 'fixed';
+    fetch(operationsUrl)
+        .then(response => response.json())
+        .then(operations => {
+            let filteredProducts = null;
 
-    // Get selector dimensions (after making it visible)
-    const selectorRect = selector.getBoundingClientRect();
-    const selectorWidth = selectorRect.width || 300; // fallback to min-width
-    const selectorHeight = selectorRect.height || 400; // estimated height
+            // Check if we need to filter products based on operation types
+            if (operations && Array.isArray(operations) && operations.length > 0) {
+                const productTypes = new Set();
+                let hasEmptyType = false;
 
-    // Get viewport dimensions
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
+                // Collect all product types from operations
+                operations.forEach(op => {
+                    const productType = op['Изделие (тип)'];
+                    if (!productType || productType === '') {
+                        // If any operation has no product type, show all products
+                        hasEmptyType = true;
+                    } else {
+                        productTypes.add(productType);
+                    }
+                });
 
-    // Calculate horizontal position (prefer right of button, fall back to left)
-    let left = rect.right + 5;
-    if (left + selectorWidth > viewportWidth) {
-        // Not enough space on right, try left side
-        left = rect.left - selectorWidth - 5;
-        if (left < 0) {
-            // Not enough space on either side, align to right edge of viewport
-            left = viewportWidth - selectorWidth - 10;
-        }
-    }
+                // If any operation has empty type, show all products
+                // Otherwise, filter to only show products matching the types
+                if (!hasEmptyType && productTypes.size > 0) {
+                    filteredProducts = allProductsReference.filter(product => {
+                        const productId = product['ИзделиеID'] || product['ID'];
+                        return productTypes.has(productId);
+                    });
+                }
+            }
 
-    // Calculate vertical position (align with button top, adjust if needed)
-    let top = rect.top;
-    if (top + selectorHeight > viewportHeight) {
-        // Not enough space below, align to bottom of viewport
-        top = viewportHeight - selectorHeight - 10;
-        if (top < 0) {
-            // Selector taller than viewport, align to top
-            top = 10;
-        }
-    }
+            // Populate with filtered or all products
+            populateProductSelector(filteredProducts);
 
-    // Ensure minimum margins
-    left = Math.max(10, Math.min(left, viewportWidth - selectorWidth - 10));
-    top = Math.max(10, Math.min(top, viewportHeight - selectorHeight - 10));
+            // Reset search and show first to get proper dimensions
+            const searchInput = document.getElementById('productSelectorSearch');
+            if (searchInput) searchInput.value = '';
+            filterProductSelector();
+            selector.classList.remove('hidden');
 
-    selector.style.left = `${left}px`;
-    selector.style.top = `${top}px`;
+            // Position near the click, ensuring it stays within viewport
+            const rect = event.target.getBoundingClientRect();
+            selector.style.position = 'fixed';
 
-    // Focus search input
-    if (searchInput) searchInput.focus();
+            // Get selector dimensions (after making it visible)
+            const selectorRect = selector.getBoundingClientRect();
+            const selectorWidth = selectorRect.width || 300; // fallback to min-width
+            const selectorHeight = selectorRect.height || 400; // estimated height
+
+            // Get viewport dimensions
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+
+            // Calculate horizontal position (prefer right of button, fall back to left)
+            let left = rect.right + 5;
+            if (left + selectorWidth > viewportWidth) {
+                // Not enough space on right, try left side
+                left = rect.left - selectorWidth - 5;
+                if (left < 0) {
+                    // Not enough space on either side, align to right edge of viewport
+                    left = viewportWidth - selectorWidth - 10;
+                }
+            }
+
+            // Calculate vertical position (align with button top, adjust if needed)
+            let top = rect.top;
+            if (top + selectorHeight > viewportHeight) {
+                // Not enough space below, align to bottom of viewport
+                top = viewportHeight - selectorHeight - 10;
+                if (top < 0) {
+                    // Selector taller than viewport, align to top
+                    top = 10;
+                }
+            }
+
+            // Ensure minimum margins
+            left = Math.max(10, Math.min(left, viewportWidth - selectorWidth - 10));
+            top = Math.max(10, Math.min(top, viewportHeight - selectorHeight - 10));
+
+            selector.style.left = `${left}px`;
+            selector.style.top = `${top}px`;
+
+            // Focus search input
+            if (searchInput) searchInput.focus();
+        })
+        .catch(error => {
+            console.error('Error loading available operations:', error);
+            // On error, show all products
+            populateProductSelector();
+
+            // Still show the selector with positioning
+            const searchInput = document.getElementById('productSelectorSearch');
+            if (searchInput) searchInput.value = '';
+            filterProductSelector();
+            selector.classList.remove('hidden');
+
+            const rect = event.target.getBoundingClientRect();
+            selector.style.position = 'fixed';
+
+            const selectorRect = selector.getBoundingClientRect();
+            const selectorWidth = selectorRect.width || 300;
+            const selectorHeight = selectorRect.height || 400;
+
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+
+            let left = rect.right + 5;
+            if (left + selectorWidth > viewportWidth) {
+                left = rect.left - selectorWidth - 5;
+                if (left < 0) {
+                    left = viewportWidth - selectorWidth - 10;
+                }
+            }
+
+            let top = rect.top;
+            if (top + selectorHeight > viewportHeight) {
+                top = viewportHeight - selectorHeight - 10;
+                if (top < 0) {
+                    top = 10;
+                }
+            }
+
+            left = Math.max(10, Math.min(left, viewportWidth - selectorWidth - 10));
+            top = Math.max(10, Math.min(top, viewportHeight - selectorHeight - 10));
+
+            selector.style.left = `${left}px`;
+            selector.style.top = `${top}px`;
+
+            if (searchInput) searchInput.focus();
+        });
 }
 
 /**
