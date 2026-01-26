@@ -4198,12 +4198,17 @@ function adjustRowspansAfterFilter() {
                         // Found a visible row after a gap - it needs its own cells
                         const targetRow = rows[i];
 
-                        // Check if this cell type already exists in target row
-                        // (to avoid duplicating if already processed)
-                        const existingCells = targetRow.querySelectorAll('td');
-                        const cellIndex = Array.from(row.children).indexOf(cell);
-                        if (cellIndex < existingCells.length) {
-                            // Cell position already occupied, skip
+                        // Fix for issue #394: Check if a cell of the SAME CLASS already exists
+                        // Previous check was comparing cell index with total cells, which was wrong
+                        // We need to check if a cell with the same class (number-cell, checkbox-cell, etc.) exists
+                        const cellClasses = Array.from(cell.classList);
+                        const hasMatchingClass = cellClasses.some(cls => {
+                            // Look for cells with this class (both original and cloned)
+                            return targetRow.querySelector(`td.${cls}`) !== null;
+                        });
+
+                        if (hasMatchingClass) {
+                            // Cell of this type already exists in target row, skip
                             continue;
                         }
 
