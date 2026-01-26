@@ -851,6 +851,11 @@
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         z-index: 1000;
         min-width: 300px;
+        max-width: 400px;
+        max-height: 80vh;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
     }
 
     .product-selector .selector-header {
@@ -883,6 +888,9 @@
         border: 1px solid #ced4da;
         border-radius: 4px;
         font-size: 13px;
+        max-height: 300px;
+        overflow-y: auto;
+        flex: 1;
     }
 
     .product-selector .add-btn {
