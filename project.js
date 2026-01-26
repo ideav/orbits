@@ -2113,7 +2113,7 @@ function updateBulkAddIconVisibility() {
 /**
  * Show product selector for bulk adding products to selected estimate positions
  */
-function showBulkProductSelector(event) {
+async function showBulkProductSelector(event) {
     event.stopPropagation();
 
     // Get all checked estimate checkboxes
@@ -2135,7 +2135,10 @@ function showBulkProductSelector(event) {
     const selector = document.getElementById('productSelector');
     if (!selector) return;
 
-    populateProductSelector();
+    // For bulk operations, use the first position's ID to fetch allowed products
+    // This provides filtering while keeping complexity reasonable
+    const firstPositionId = currentProductAddContext.positions[0].estimatePositionId;
+    await populateProductSelector(firstPositionId);
 
     // Position selector near the icon
     const rect = event.target.getBoundingClientRect();
@@ -2212,13 +2215,47 @@ function applyProductDetailsVisibility() {
 
 /**
  * Populate the product selector dropdown
+ * @param {string|null} estimatePositionId - Optional estimate position ID to filter products
  */
-function populateProductSelector() {
+async function populateProductSelector(estimatePositionId = null) {
     const select = document.getElementById('productSelectorList');
     if (!select) return;
 
     select.innerHTML = '';
-    allProductsReference.forEach(product => {
+
+    let productsToShow = allProductsReference;
+
+    // If estimate position ID is provided, fetch available products from report/7666
+    if (estimatePositionId) {
+        try {
+            const response = await fetch(`https://${window.location.host}/${db}/report/7666?JSON_KV&FR_SID=${estimatePositionId}`);
+            const data = await response.json();
+
+            // Check if query returned results and extract "Изделие" values
+            if (data && Array.isArray(data) && data.length > 0) {
+                // Extract product names from the "Изделие" field
+                const allowedProductNames = data
+                    .map(item => item['Изделие'])
+                    .filter(name => name && name.trim() !== ''); // Filter out empty values
+
+                // If we have valid product names, filter the products list
+                if (allowedProductNames.length > 0) {
+                    productsToShow = allProductsReference.filter(product => {
+                        const productName = product['Изделие'] || product['Название'] || '';
+                        return allowedProductNames.includes(productName);
+                    });
+                }
+                // If no valid product names found (all empty), show all products (as per requirement)
+            }
+            // If query returned empty result, show all products (as per requirement)
+        } catch (error) {
+            console.error('Error fetching available products:', error);
+            // On error, show all products
+        }
+    }
+
+    // Populate the select with filtered or all products
+    productsToShow.forEach(product => {
         const option = document.createElement('option');
         option.value = product['ИзделиеID'] || product['ID'] || '';
         option.textContent = product['Изделие'] || product['Название'] || 'Без названия';
@@ -2230,7 +2267,7 @@ function populateProductSelector() {
 /**
  * Show the product selector at the click position
  */
-function showProductSelector(event, constructionId, estimatePositionId) {
+async function showProductSelector(event, constructionId, estimatePositionId) {
     event.stopPropagation();
 
     currentProductAddContext = {
@@ -2240,6 +2277,9 @@ function showProductSelector(event, constructionId, estimatePositionId) {
 
     const selector = document.getElementById('productSelector');
     if (!selector) return;
+
+    // Populate products with filtering based on estimate position
+    await populateProductSelector(estimatePositionId);
 
     // Reset search and show first to get proper dimensions
     const searchInput = document.getElementById('productSelectorSearch');
