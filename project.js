@@ -4001,6 +4001,8 @@ function adjustRowspansAfterFilter() {
                     cell.removeAttribute('rowspan');
                 }
                 cell.style.display = '';
+                // Clear the moved flag when restoring
+                cell.removeAttribute('data-moved');
             });
         });
         return;
@@ -4015,6 +4017,14 @@ function adjustRowspansAfterFilter() {
         const cellsToMove = [];
 
         cellsWithRowspan.forEach(cell => {
+            // Skip cells that were moved here from another row (Fix for issue #384)
+            // When we move cells from a hidden row to a visible target row,
+            // the target row will later find these moved cells in its querySelectorAll.
+            // We need to skip them to avoid recalculating rowspan from wrong row index.
+            if (cell.hasAttribute('data-moved')) {
+                return;
+            }
+
             // Store original rowspan on first encounter
             if (!cell.hasAttribute('data-original-rowspan')) {
                 const currentRowspan = cell.getAttribute('rowspan');
@@ -4102,6 +4112,11 @@ function adjustRowspansAfterFilter() {
                 } else {
                     targetRow.appendChild(cell);
                 }
+
+                // Mark cell as moved to prevent reprocessing (Fix for issue #384)
+                // When we later process the target row, we need to skip these moved cells
+                // because they were already processed in their original row
+                cell.setAttribute('data-moved', 'true');
 
                 // Make cell visible and update rowspan
                 cell.style.display = '';
