@@ -2493,6 +2493,12 @@ function hideSelectedEstimates() {
                 break;
             }
 
+            // Skip rows with products (cells with class product-cell-with-operations)
+            const hasProduct = row.querySelector('.product-cell-with-operations');
+            if (hasProduct) {
+                continue;
+            }
+
             // This row belongs to our estimate position, collapse it
             // Apply estimate-collapsed to td cells starting from "Позиция сметы" column (index 9)
             const cells = row.querySelectorAll('td');
@@ -2630,6 +2636,12 @@ function restoreCollapsedState() {
             if (hasEstimateCheckbox && i > startRowIndex) {
                 // Hit a new estimate position, stop
                 break;
+            }
+
+            // Skip rows with products (cells with class product-cell-with-operations)
+            const hasProduct = row.querySelector('.product-cell-with-operations');
+            if (hasProduct) {
+                continue;
             }
 
             // This row belongs to our estimate position, collapse it
