@@ -3779,9 +3779,38 @@ function toggleEstimateFilter(event) {
 
     if (dropdown) {
         const isVisible = dropdown.style.display !== 'none';
-        dropdown.style.display = isVisible ? 'none' : 'block';
 
-        if (!isVisible) {
+        if (isVisible) {
+            dropdown.style.display = 'none';
+        } else {
+            // Fix for issue #392: Calculate position using fixed positioning
+            const iconRect = event.target.getBoundingClientRect();
+            let top = iconRect.bottom + 4;  // 4px gap below icon
+            let left = iconRect.left;
+
+            // Make dropdown visible to measure its size
+            dropdown.style.display = 'block';
+            dropdown.style.visibility = 'hidden';  // Hide while measuring
+
+            // Check if dropdown extends beyond viewport bottom
+            const dropdownHeight = dropdown.offsetHeight;
+            if (top + dropdownHeight > window.innerHeight - 10) {
+                // Position above icon instead
+                top = Math.max(10, iconRect.top - dropdownHeight - 4);
+            }
+
+            // Check if dropdown extends beyond viewport right
+            const dropdownWidth = dropdown.offsetWidth;
+            if (left + dropdownWidth > window.innerWidth - 10) {
+                // Align right edge with icon's right edge
+                left = Math.max(10, iconRect.right - dropdownWidth);
+            }
+
+            // Apply position and make visible
+            dropdown.style.top = top + 'px';
+            dropdown.style.left = left + 'px';
+            dropdown.style.visibility = 'visible';
+
             // Focus search input when opening
             setTimeout(() => {
                 const searchInput = document.getElementById('estimateFilterSearch');
@@ -3804,9 +3833,38 @@ function toggleProductFilter(event) {
 
     if (dropdown) {
         const isVisible = dropdown.style.display !== 'none';
-        dropdown.style.display = isVisible ? 'none' : 'block';
 
-        if (!isVisible) {
+        if (isVisible) {
+            dropdown.style.display = 'none';
+        } else {
+            // Fix for issue #392: Calculate position using fixed positioning
+            const iconRect = event.target.getBoundingClientRect();
+            let top = iconRect.bottom + 4;  // 4px gap below icon
+            let left = iconRect.left;
+
+            // Make dropdown visible to measure its size
+            dropdown.style.display = 'block';
+            dropdown.style.visibility = 'hidden';  // Hide while measuring
+
+            // Check if dropdown extends beyond viewport bottom
+            const dropdownHeight = dropdown.offsetHeight;
+            if (top + dropdownHeight > window.innerHeight - 10) {
+                // Position above icon instead
+                top = Math.max(10, iconRect.top - dropdownHeight - 4);
+            }
+
+            // Check if dropdown extends beyond viewport right
+            const dropdownWidth = dropdown.offsetWidth;
+            if (left + dropdownWidth > window.innerWidth - 10) {
+                // Align right edge with icon's right edge
+                left = Math.max(10, iconRect.right - dropdownWidth);
+            }
+
+            // Apply position and make visible
+            dropdown.style.top = top + 'px';
+            dropdown.style.left = left + 'px';
+            dropdown.style.visibility = 'visible';
+
             // Focus search input when opening
             setTimeout(() => {
                 const searchInput = document.getElementById('productFilterSearch');
