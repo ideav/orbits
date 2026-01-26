@@ -4011,6 +4011,9 @@ function adjustRowspansAfterFilter() {
         // Find cells with rowspan or data-original-rowspan in this row
         const cellsWithRowspan = row.querySelectorAll('td[rowspan], td[data-original-rowspan]');
 
+        // Collect cells that need to be moved (if row is hidden)
+        const cellsToMove = [];
+
         cellsWithRowspan.forEach(cell => {
             // Store original rowspan on first encounter
             if (!cell.hasAttribute('data-original-rowspan')) {
@@ -4038,8 +4041,7 @@ function adjustRowspansAfterFilter() {
                     cell.style.display = 'none';
                 } else {
                     // The cell is in a hidden row but spans into visible rows
-                    // We need to MOVE this cell to the first visible row in the span
-                    // to preserve table structure (Fix for issue #380)
+                    // Collect it for moving to preserve table structure (Fix for issue #380)
 
                     // Find the first visible row in the rowspan range
                     let firstVisibleRowIndex = -1;
@@ -4051,26 +4053,12 @@ function adjustRowspansAfterFilter() {
                     }
 
                     if (firstVisibleRowIndex !== -1) {
-                        // Remove cell from current (hidden) row
-                        const cellParent = cell.parentElement;
-                        cell.remove();
-
-                        // Add cell to first visible row at the correct position
-                        const firstVisibleRow = rows[firstVisibleRowIndex];
-                        // Insert at the beginning of the row (before other cells)
-                        if (firstVisibleRow.firstChild) {
-                            firstVisibleRow.insertBefore(cell, firstVisibleRow.firstChild);
-                        } else {
-                            firstVisibleRow.appendChild(cell);
-                        }
-
-                        // Make cell visible and update rowspan
-                        cell.style.display = '';
-                        if (visibleCount > 1) {
-                            cell.setAttribute('rowspan', visibleCount);
-                        } else if (visibleCount === 1) {
-                            cell.removeAttribute('rowspan');
-                        }
+                        // Collect this cell for moving
+                        cellsToMove.push({
+                            cell: cell,
+                            firstVisibleRowIndex: firstVisibleRowIndex,
+                            visibleCount: visibleCount
+                        });
                     } else {
                         // No visible rows found (shouldn't happen if visibleCount > 0)
                         cell.style.display = 'none';
@@ -4091,6 +4079,39 @@ function adjustRowspansAfterFilter() {
                 }
             }
         });
+
+        // Move all collected cells to the first visible row IN ORDER
+        // This fixes issue #382 where cells were inserted in reverse order
+        if (cellsToMove.length > 0) {
+            // All cells should go to the same target row
+            const targetRow = rows[cellsToMove[0].firstVisibleRowIndex];
+
+            // Remove all cells first
+            cellsToMove.forEach(({cell}) => {
+                cell.remove();
+            });
+
+            // Insert cells at the beginning of target row in correct order
+            // We insert in reverse order at the beginning to maintain original order
+            for (let i = cellsToMove.length - 1; i >= 0; i--) {
+                const {cell, visibleCount} = cellsToMove[i];
+
+                // Insert at beginning
+                if (targetRow.firstChild) {
+                    targetRow.insertBefore(cell, targetRow.firstChild);
+                } else {
+                    targetRow.appendChild(cell);
+                }
+
+                // Make cell visible and update rowspan
+                cell.style.display = '';
+                if (visibleCount > 1) {
+                    cell.setAttribute('rowspan', visibleCount);
+                } else if (visibleCount === 1) {
+                    cell.removeAttribute('rowspan');
+                }
+            }
+        }
     });
 }
 
