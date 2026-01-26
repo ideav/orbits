@@ -1323,10 +1323,12 @@ function buildFlatConstructionRows(construction, estimatePositions, rowNumber) {
                 // Fixed: Check if position exists AND has the field (not just if position exists)
                 const estimateId = (position && position['Позиция сметыID']) || prod['Позиция сметыID'] || prod['Смета проектаID'] || '';
                 const prodId = prod['ИзделиеID'] || '?';
-                const unitId = prod['Ед. изм ID'] || prod['ЕдИзмID'] || '';
+                // Try multiple field name variants for unit ID (with/without dots and spaces)
+                const unitId = prod['Ед.изм.ID'] || prod['Ед. изм ID'] || prod['ЕдИзмID'] || '';
                 // Look up unit name from dictionaries
                 const unit = unitId ? dictionaries.units.find(u => u['Ед.изм.ID'] == unitId) : null;
-                const unitName = unit ? unit['Ед.изм.'] : (prod['Ед. изм'] || '—');
+                // Only use the looked-up unit name, never fall back to raw field which might be an ID
+                const unitName = unit ? unit['Ед.изм.'] : '—';
                 html += `<td class="col-checkbox"><input type="checkbox" class="compact-checkbox" data-type="product" data-id="${prodId}" onchange="updateBulkDeleteButtonVisibility()"></td>`;
                 html += `<td class="product-cell product-cell-with-operations" title="Позиция сметыID: ${prodPositionId}">
                     <span class="product-name">${escapeHtml(prod['Изделие'] || '—')}</span>
