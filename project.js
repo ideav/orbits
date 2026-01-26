@@ -2241,18 +2241,53 @@ function showProductSelector(event, constructionId, estimatePositionId) {
     const selector = document.getElementById('productSelector');
     if (!selector) return;
 
-    // Position near the click
-    const rect = event.target.getBoundingClientRect();
-    selector.style.position = 'fixed';
-    selector.style.left = `${rect.right + 5}px`;
-    selector.style.top = `${rect.top}px`;
-
-    // Reset search and show
+    // Reset search and show first to get proper dimensions
     const searchInput = document.getElementById('productSelectorSearch');
     if (searchInput) searchInput.value = '';
     filterProductSelector();
-
     selector.classList.remove('hidden');
+
+    // Position near the click, ensuring it stays within viewport
+    const rect = event.target.getBoundingClientRect();
+    selector.style.position = 'fixed';
+
+    // Get selector dimensions (after making it visible)
+    const selectorRect = selector.getBoundingClientRect();
+    const selectorWidth = selectorRect.width || 300; // fallback to min-width
+    const selectorHeight = selectorRect.height || 400; // estimated height
+
+    // Get viewport dimensions
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    // Calculate horizontal position (prefer right of button, fall back to left)
+    let left = rect.right + 5;
+    if (left + selectorWidth > viewportWidth) {
+        // Not enough space on right, try left side
+        left = rect.left - selectorWidth - 5;
+        if (left < 0) {
+            // Not enough space on either side, align to right edge of viewport
+            left = viewportWidth - selectorWidth - 10;
+        }
+    }
+
+    // Calculate vertical position (align with button top, adjust if needed)
+    let top = rect.top;
+    if (top + selectorHeight > viewportHeight) {
+        // Not enough space below, align to bottom of viewport
+        top = viewportHeight - selectorHeight - 10;
+        if (top < 0) {
+            // Selector taller than viewport, align to top
+            top = 10;
+        }
+    }
+
+    // Ensure minimum margins
+    left = Math.max(10, Math.min(left, viewportWidth - selectorWidth - 10));
+    top = Math.max(10, Math.min(top, viewportHeight - selectorHeight - 10));
+
+    selector.style.left = `${left}px`;
+    selector.style.top = `${top}px`;
 
     // Focus search input
     if (searchInput) searchInput.focus();
