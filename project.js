@@ -4104,9 +4104,15 @@ function adjustRowspansAfterFilter() {
     }
 
     // Process ALL rows (including hidden ones) when filters are active
+    console.group('📊 Adjusting rowspans after filter');
     rows.forEach((row, rowIndex) => {
         // Find cells with rowspan or data-original-rowspan in this row
         const cellsWithRowspan = row.querySelectorAll('td[rowspan], td[data-original-rowspan]');
+        const isVisible = row.style.display !== 'none';
+
+        if (cellsWithRowspan.length > 0) {
+            console.log(`\nRow ${rowIndex} (${isVisible ? 'VISIBLE' : 'HIDDEN'}): ${cellsWithRowspan.length} cells with rowspan`);
+        }
 
         // Collect cells that need to be moved (if row is hidden)
         const cellsToMove = [];
@@ -4177,14 +4183,19 @@ function adjustRowspansAfterFilter() {
                 // HTML rowspan cannot skip hidden rows in the middle
                 // Find the last consecutive visible row from current row
                 let lastConsecutiveVisible = rowIndex;
+                console.log(`  Cell in visible row ${rowIndex}, originalRowspan=${originalRowspan}`);
+                console.log(`  Scanning for consecutive visible rows in range [${rowIndex + 1}, ${rowIndex + originalRowspan}):`);
                 for (let i = rowIndex + 1; i < rowIndex + originalRowspan && i < rows.length; i++) {
                     if (rows[i].style.display === 'none') {
+                        console.log(`    Row ${i}: HIDDEN - stopping scan`);
                         break;  // Stop at first hidden row
                     }
+                    console.log(`    Row ${i}: VISIBLE`);
                     lastConsecutiveVisible = i;
                 }
 
                 const consecutiveSpan = lastConsecutiveVisible - rowIndex + 1;
+                console.log(`  Last consecutive visible: row ${lastConsecutiveVisible}, span=${consecutiveSpan}`);
                 if (consecutiveSpan > 1) {
                     cell.setAttribute('rowspan', consecutiveSpan);
                 } else {
@@ -4193,26 +4204,32 @@ function adjustRowspansAfterFilter() {
 
                 // Check for visible rows after gaps (hidden rows) in the original span
                 // These rows need their own copies of the cells since rowspan cannot reach them
+                console.log(`  🔍 Checking for visible rows after gap. Range: [${lastConsecutiveVisible + 1}, ${rowIndex + originalRowspan})`);
                 for (let i = lastConsecutiveVisible + 1; i < rowIndex + originalRowspan && i < rows.length; i++) {
                     if (rows[i].style.display !== 'none') {
                         // Found a visible row after a gap - it needs its own cells
                         const targetRow = rows[i];
+                        console.log(`    ✓ Found visible row ${i} after gap - needs cells`);
 
-                        // Fix for issue #394: Check if a cell of the SAME CLASS already exists
-                        // Previous check was comparing cell index with total cells, which was wrong
-                        // We need to check if a cell with the same class (number-cell, checkbox-cell, etc.) exists
-                        const cellClasses = Array.from(cell.classList);
-                        const hasMatchingClass = cellClasses.some(cls => {
-                            // Look for cells with this class (both original and cloned)
-                            return targetRow.querySelector(`td.${cls}`) !== null;
-                        });
+                        // Fix for issue #394/#396: Check if a cell of the SAME TYPE already exists
+                        // We need to check for IDENTIFYING classes only (number-cell, checkbox-cell, construction-cell)
+                        // not utility classes like compact-cell, sticky-cell, etc.
+                        const identifyingClasses = ['number-cell', 'checkbox-cell', 'construction-cell', 'estimate-cell', 'product-cell'];
+                        const cellType = identifyingClasses.find(cls => cell.classList.contains(cls));
 
-                        if (hasMatchingClass) {
-                            // Cell of this type already exists in target row, skip
-                            continue;
+                        console.log(`      Cell type: ${cellType}, Classes: ${Array.from(cell.classList).join(', ')}`);
+
+                        if (cellType) {
+                            // Check if target row already has a cell of this type
+                            const existingCell = targetRow.querySelector(`td.${cellType}`);
+                            if (existingCell) {
+                                console.log(`      ⊘ Target row already has ${cellType}, skipping clone`);
+                                continue;
+                            }
                         }
 
                         // Clone the cell and add to target row
+                        console.log(`      ➕ Cloning ${cellType || 'cell'} to row ${i}`);
                         const clonedCell = cell.cloneNode(true);
                         clonedCell.removeAttribute('rowspan');
                         clonedCell.removeAttribute('data-moved');
@@ -4224,6 +4241,9 @@ function adjustRowspansAfterFilter() {
                         } else {
                             targetRow.appendChild(clonedCell);
                         }
+                        console.log(`      ✓ Cloned and inserted ${cellType}`);
+                    } else {
+                        console.log(`    ⊗ Row ${i} is hidden, skipping`);
                     }
                 }
             }
@@ -4272,6 +4292,7 @@ function adjustRowspansAfterFilter() {
             }
         }
     });
+    console.groupEnd();
 }
 
 // Update filter icon appearance
