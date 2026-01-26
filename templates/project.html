@@ -622,10 +622,8 @@
 
     /* Filter dropdown styles */
     .filter-dropdown {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        margin-top: 4px;
+        position: fixed;  /* Fix for issue #392: Use fixed positioning to avoid clipping */
+        /* top and left will be set by JavaScript based on icon position */
         background: white;
         border: 1px solid #dee2e6;
         border-radius: 4px;
