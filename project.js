@@ -5101,6 +5101,7 @@ async function confirmAddOperations() {
     const total = operations.length;
 
     // Fix for issue #402: Look up ИзделиеID from report/7202 by product name
+    console.log(`[Issue #402] Fix for issue #402: Look up ИзделиеID from report/7202 by product name`);
     let productIdForT6700 = null;
     if (currentOperationsContext.productName) {
         const productName = currentOperationsContext.productName;
@@ -5400,11 +5401,7 @@ async function saveNewOperation(event) {
 
     // Fix for issue #400: Look up ИзделиеID by product name from report/7202
     let productId = null;
-    if (productSelectValue) {
-        // The dropdown value could be the product ID directly (from currentOperationsContext)
-        // But we need to verify it exists in allProductsReference
-        productId = productSelectValue;
-    } else if (currentOperationsContext.productName) {
+    if (currentOperationsContext.productName) {
         // If no value selected but we have a product name, look it up in allProductsReference
         const productName = currentOperationsContext.productName;
         const matchingProduct = allProductsReference.find(p =>
