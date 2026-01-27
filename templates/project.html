@@ -2047,6 +2047,26 @@
 </div>
 
 <script>
+    // Show Add Project Modal (Issue #409)
+    // Reuses the existing project modal for creating new projects
+    function showAddProjectModal() {
+        // Clear form fields
+        document.getElementById('projectId').value = '';
+        document.getElementById('projectName').value = '';
+        document.getElementById('projectDescription').value = '';
+        document.getElementById('projectClient').value = '';
+        document.getElementById('projectObject').value = '';
+        document.getElementById('projectStart').value = '';
+        document.getElementById('projectDuration').value = '';
+        document.getElementById('projectDeadline').value = '';
+
+        // Set modal title for adding
+        document.getElementById('projectModalTitle').textContent = 'Добавить проект';
+
+        // Show modal
+        document.getElementById('projectModalBackdrop').classList.add('show');
+    }
+
     // Load project.js dynamically
     (function() {
         var script = document.createElement('script');
