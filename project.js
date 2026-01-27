@@ -1774,7 +1774,8 @@ function calculateDurationFromEndDate() {
 }
 
 /**
- * Save project
+ * Save project (Issue #411)
+ * Creates new project or updates existing one via API
  */
 function saveProject() {
     const projectId = document.getElementById('projectId').value;
@@ -1785,24 +1786,58 @@ function saveProject() {
     const startDate = document.getElementById('projectStart').value;
     const deadline = document.getElementById('projectDeadline').value;
 
-    // TODO: Implement actual API call
-    console.log('Saving project:', { projectId, name, description, clientId, objectId, startDate, deadline });
+    // Build form data with field mappings matching projects.js
+    const formData = new FormData();
+    formData.append('_xsrf', xsrf);
+    formData.append('t663', name);           // Проект
+    formData.append('t664', description);    // Описание
+    formData.append('t667', clientId);       // Заказчик
+    formData.append('t717', objectId);       // Объект
+    formData.append('t672', startDate);      // Старт
+    formData.append('t674', deadline);       // Окончание
 
-    // Update local data
-    if (selectedProject) {
-        selectedProject['Проект'] = name;
-        selectedProject['Описание'] = description;
-        selectedProject['Заказчик'] = dictionaries.clients.find(c => c['ЗаказчикID'] === clientId)?.['Заказчик'] || '';
-        selectedProject['Объект'] = dictionaries.objects.find(o => o['Объект ID'] === objectId)?.['Объект'] || '';
-        selectedProject['Старт'] = startDate;
-        selectedProject['Срок'] = deadline;
+    // Determine URL based on whether we're creating or updating
+    const url = projectId ?
+        `https://${window.location.host}/${db}/_m_save/${projectId}?JSON` :
+        `https://${window.location.host}/${db}/_m_new/663?JSON&up=1`;
 
-        projectInfo = selectedProject;
-        updateProjectHeader();
-    }
+    fetch(url, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Project saved:', data);
+        closeProjectModal();
 
-    closeProjectModal();
-    alert('Проект сохранен');
+        if (projectId) {
+            // Editing existing project - update local data and header
+            if (selectedProject) {
+                selectedProject['Проект'] = name;
+                selectedProject['Описание'] = description;
+                selectedProject['Заказчик'] = dictionaries.clients.find(c => c['ЗаказчикID'] === clientId)?.['Заказчик'] || '';
+                selectedProject['Объект'] = dictionaries.objects.find(o => o['Объект ID'] === objectId)?.['Объект'] || '';
+                selectedProject['Старт'] = startDate;
+                selectedProject['Срок'] = deadline;
+
+                projectInfo = selectedProject;
+                updateProjectHeader();
+            }
+        } else {
+            // Created new project - redirect to it or reload
+            if (data.obj) {
+                // Redirect to the new project page
+                window.location.href = `https://${window.location.host}/${db}/project?p=${data.obj}`;
+            } else {
+                // Fallback: reload to show updated project list
+                window.location.reload();
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error saving project:', error);
+        alert('Ошибка сохранения проекта');
+    });
 }
 
 /**
