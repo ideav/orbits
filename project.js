@@ -5809,6 +5809,20 @@ async function confirmBulkAddOperations() {
                     }
                 }
 
+                // Issue #402: Look up ИзделиеID from report/7202 by product name
+                if (productData && productData['Изделие'] && allProductsReference) {
+                    const productName = productData['Изделие'];
+                    const productRef = allProductsReference.find(ref =>
+                        ref['Изделие'] && ref['Изделие'].trim() === productName.trim()
+                    );
+                    if (productRef && productRef['ИзделиеID']) {
+                        formData.append('t6700', productRef['ИзделиеID']);
+                        console.log(`[Issue #405] Found product ID ${productRef['ИзделиеID']} for product "${productName}" from report/7202`);
+                    } else {
+                        console.warn(`[Issue #405] Could not find product ID for "${productName}" in report/7202`);
+                    }
+                }
+
                 const response = await fetch(url, {
                     method: 'POST',
                     credentials: 'include',
